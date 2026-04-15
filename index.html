@@ -6,7 +6,6 @@
   <title>可愛運動回報系統</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
   <script type="importmap">
@@ -38,7 +37,6 @@
       Crown, PartyPopper
     } from 'lucide-react';
 
-    // 成就配置
     const ACHIEVEMENTS = {
       10: { title: "初萌小仙芽", color: "from-green-300 to-teal-400", icon: <Sparkles className="text-white" /> },
       20: { title: "霓裳輕盈仙子", color: "from-purple-400 to-pink-500", icon: <Medal className="text-white" /> },
@@ -46,7 +44,6 @@
     };
 
     function App() {
-      // --- 免資料庫 (Local Storage) 初始化 ---
       const [sessionUser, setSessionUser] = useState(() => localStorage.getItem('fitness_user'));
       const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem('fitness_user') === '管理員');
       const [members, setMembers] = useState(() => JSON.parse(localStorage.getItem('fitness_members') || '[]'));
@@ -57,21 +54,11 @@
       const [showLeaderboard, setShowLeaderboard] = useState(false);
       const [unlockedAchievement, setUnlockedAchievement] = useState(null);
 
-      // 資料變更時自動存入瀏覽器
-      useEffect(() => {
-        localStorage.setItem('fitness_members', JSON.stringify(members));
-      }, [members]);
-
-      useEffect(() => {
-        localStorage.setItem('fitness_reports', JSON.stringify(reports));
-      }, [reports]);
-
-      useEffect(() => {
-        if (sessionUser) {
-          localStorage.setItem('fitness_user', sessionUser);
-        } else {
-          localStorage.removeItem('fitness_user');
-        }
+      useEffect(() => { localStorage.setItem('fitness_members', JSON.stringify(members)); }, [members]);
+      useEffect(() => { localStorage.setItem('fitness_reports', JSON.stringify(reports)); }, [reports]);
+      useEffect(() => { 
+        if (sessionUser) localStorage.setItem('fitness_user', sessionUser);
+        else localStorage.removeItem('fitness_user');
       }, [sessionUser]);
 
       const showMessage = (msg) => {
@@ -81,27 +68,18 @@
 
       const handleLogin = (name) => {
         const trimmedName = name.trim();
-        if (!trimmedName) {
-          showMessage("名字不能空空的喔 🌸");
-          return;
-        }
+        if (!trimmedName) { showMessage("名字不能空空的喔 🌸"); return; }
 
         setLoading(true);
         const isAdm = trimmedName.toLowerCase() === 'admin';
         
-        // 如果不是管理員，且尚未在成員名單中，自動加入
         if (!isAdm && !members.find(m => m.name === trimmedName)) {
           setMembers(prev => [...prev, { id: Date.now().toString(), name: trimmedName, createdAt: new Date().toISOString() }]);
         }
 
         setTimeout(() => {
-          if (isAdm) {
-            setIsAdmin(true);
-            setSessionUser('管理員');
-          } else {
-            setIsAdmin(false);
-            setSessionUser(trimmedName);
-          }
+          if (isAdm) { setIsAdmin(true); setSessionUser('管理員'); } 
+          else { setIsAdmin(false); setSessionUser(trimmedName); }
           setLoading(false);
           showMessage(`歡迎回來，${trimmedName} ✨`);
         }, 500);
@@ -110,27 +88,20 @@
       const handleLogout = () => {
         setLoading(true);
         setTimeout(() => {
-          setSessionUser(null);
-          setIsAdmin(false);
-          setLoading(false);
+          setSessionUser(null); setIsAdmin(false); setLoading(false);
           showMessage("登出成功，明天也要加油喔！🌸");
         }, 500);
       };
 
       const submitReport = () => {
         if (!sessionUser) return;
-
         const today = new Date().toISOString().split('T')[0];
         const currentDays = new Set(reports.filter(r => r.userName === sessionUser).map(r => r.date)).size;
         const newDays = currentDays + 1;
 
         const newReport = {
-          id: Date.now().toString(),
-          userName: sessionUser,
-          userId: sessionUser,
-          date: today,
-          timestamp: new Date().toISOString(),
-          status: 'completed'
+          id: Date.now().toString(), userName: sessionUser, userId: sessionUser,
+          date: today, timestamp: new Date().toISOString(), status: 'completed'
         };
 
         setReports(prev => [...prev, newReport]);
@@ -160,12 +131,8 @@
 
       const adminManualReport = (memberName, reportDate) => {
         const newReport = {
-          id: Date.now().toString(),
-          userName: memberName,
-          userId: "admin-manual",
-          date: reportDate,
-          timestamp: new Date().toISOString(),
-          status: 'completed'
+          id: Date.now().toString(), userName: memberName, userId: "admin-manual",
+          date: reportDate, timestamp: new Date().toISOString(), status: 'completed'
         };
         setReports(prev => [...prev, newReport]);
         showMessage(`已幫 ${memberName} 補打卡 (${reportDate}) 🌸`);
@@ -177,9 +144,7 @@
       }, [reports]);
 
       const userHistory = useMemo(() => {
-        return reports
-          .filter(r => r.userName === sessionUser)
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        return reports.filter(r => r.userName === sessionUser).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       }, [reports, sessionUser]);
 
       const hasReportedToday = useMemo(() => {
@@ -194,9 +159,8 @@
         
         const today = new Date();
         let targetDate = new Date(today.getFullYear(), 4, 17);
-        if (today > targetDate) {
-          targetDate.setFullYear(today.getFullYear() + 1);
-        }
+        if (today > targetDate) targetDate.setFullYear(today.getFullYear() + 1);
+        
         const diffTime = Math.abs(targetDate - today);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
@@ -397,4 +361,28 @@
       return (
         <div className="flex flex-col items-center space-y-8 animate-in fade-in duration-700">
           <div className="relative pt-4 text-center">
-            <img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=400&fit=crop" className="w-40 h-40 rounded-[40px] border-4 border-white shadow-2xl object-cover rotate
+            <img 
+              src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=400&fit=crop" 
+              alt="login-image"
+              className="w-40 h-40 rounded-[40px] border-4 border-white shadow-2xl object-cover rotate-3 mx-auto" 
+            />
+            <div className="mt-4">
+              <h2 className="text-2xl font-black text-gray-800 tracking-tight">運動時間到囉！🌸</h2>
+              <p className="text-gray-400 text-sm">輸入名字或點擊下方快捷鍵進入</p>
+            </div>
+          </div>
+          <div className="w-full space-y-4">
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-300" size={20} />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onLogin(name)} placeholder="妳的名字" className="w-full pl-12 pr-4 py-4 rounded-3xl border-2 border-pink-100 focus:border-pink-300 outline-none shadow-sm text-lg transition-all bg-white" />
+            </div>
+            <button onClick={() => onLogin(name)} className="w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white py-4 rounded-3xl font-black text-lg shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
+              進入系統 <ArrowRight size={20} />
+            </button>
+          </div>
+          <div className="w-full space-y-6 pt-4 border-t border-pink-100">
+            <div className="space-y-3">
+              <h3 className="font-black text-green-600 flex items-center gap-2 px-2 text-xs uppercase tracking-wider"><CheckCircle2 size={16}/> 今日已達成 ({todayReports.length})</h3>
+              <div className="flex flex-wrap gap-2 px-1">
+                {todayReports.map((report, idx) => (
+                  <button key={idx}
