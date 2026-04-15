@@ -41,7 +41,7 @@
     import { getFirestore, collection, doc, setDoc, getDoc, addDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
     import { 
       Heart, Dumbbell, Calendar, LogOut, CheckCircle2, Trophy, ClipboardList, 
-      Sparkles, User, ArrowRight, History, Users, Clock, Plus, Trash2, Edit2, 
+      Sparkles, User, ArrowRight, History, Clock, Plus, Trash2, Edit2, 
       X, Save, Flag, Zap, CalendarCheck, ChevronDown, ChevronUp, Medal, Star, 
       Crown, PartyPopper
     } from 'lucide-react';
@@ -79,7 +79,6 @@
       const [showLeaderboard, setShowLeaderboard] = useState(false);
       const [unlockedAchievement, setUnlockedAchievement] = useState(null);
 
-      // 初始化 Firebase 登入與資料監聽
       useEffect(() => {
         const initAuth = async () => {
           try { await signInAnonymously(auth); } 
@@ -167,10 +166,9 @@
           
           showMessage("回報成功！妳真的太棒了 🎊");
 
-          // 計算成就
           const userReports = reports.filter(r => r.userName === sessionUser);
           const currentDays = new Set(userReports.map(r => r.date)).size;
-          const newDays = currentDays + 1; // 包含今天
+          const newDays = currentDays + 1; 
           if (ACHIEVEMENTS[newDays]) {
             setUnlockedAchievement({ day: newDays, ...ACHIEVEMENTS[newDays] });
           }
@@ -179,7 +177,6 @@
         }
       };
 
-      // --- 管理員操作 (Firebase版) ---
       const adminAddMember = async (name) => {
         if (!name.trim()) return;
         try {
@@ -218,7 +215,6 @@
         } catch (err) { showMessage("補打卡失敗 🌸"); }
       };
 
-      // --- 資料計算 ---
       const todayAllReports = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
         return reports.filter(r => r.date === today);
