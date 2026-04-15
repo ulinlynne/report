@@ -1,0 +1,343 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { initializeApp } from 'firebase/app';
+import {
+  getAuth,
+  signInAnonymously,
+  signInWithCustomToken,
+  onAuthStateChanged,
+  signOut
+} from 'firebase/auth';
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  addDoc,
+  deleteDoc,
+  onSnapshot,
+  query
+} from 'firebase/firestore';
+import {
+  Heart,
+  Dumbbell,
+  Calendar,
+  LogOut,
+  CheckCircle2,
+  Trophy,
+  ClipboardList,
+  Sparkles,
+  User,
+  ArrowRight,
+  History,
+  Users,
+  Clock,
+  Plus,
+  Trash2,
+  Edit2,
+  X,
+  Save,
+  Flag,
+  Zap,
+  CalendarCheck,
+  ChevronDown,
+  ChevronUp,
+  Medal,
+  Star,
+  Crown,
+  PartyPopper
+} from 'lucide-react';
+
+// --- Firebase Configuration ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'cute-fitness-system-v4';
+
+// 成就配置
+const ACHIEVEMENTS = {
+  10: { title: "初萌小仙芽", color: "from-green-300 to-teal-400", icon: <Sparkles className="text-white" /> },
+  20: { title: "霓裳輕盈仙子", color: "from-purple-400 to-pink-500", icon: <Medal className="text-white" /> },
+  30: { title: "凌波閃耀上仙", color: "from-blue-400 to-indigo-500", icon: <Star className="text-white" fill="white" /> }
+};
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [sessionUser, setSessionUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [reports, setReports] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+ 
+  // 成就解鎖視窗狀態
+  const [unlockedAchievement, setUnlockedAchievement] = useState(null);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("Auth initialization failed:", err);
+      }
+    };
+    initAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const reportsRef = collection(db, 'artifacts', appId, 'public', 'data', 'reports');
+    const unsubReports = onSnapshot(reportsRef,
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setReports(data);
+      },
+      (err) => console.error("Reports fetch error:", err)
+    );
+
+    const membersRef = collection(db, 'artifacts', appId, 'public', 'data', 'members');
+    const unsubMembers = onSnapshot(membersRef,
+      (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMembers(data);
+      },
+      (err) => console.error("Members fetch error:", err)
+    );
+
+    return () => {
+      unsubReports();
+      unsubMembers();
+    };
+  }, [user]);
+
+  const handleLogin = async (name) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      showMessage("名字不能空空的喔 🌸");
+      return;
+    }
+
+    setLoading(true);
+    if (trimmedName.toLowerCase() !== 'admin') {
+      try {
+        const memberRef = doc(db, 'artifacts', appId, 'public', 'data', 'members', trimmedName);
+        const memberSnap = await getDoc(memberRef);
+        if (!memberSnap.exists()) {
+          await setDoc(memberRef, {
+            name: trimmedName,
+            createdAt: new Date().toISOString()
+          });
+        }
+      } catch (err) {
+        console.error("Member registration error:", err);
+      }
+    }
+
+    setTimeout(() => {
+      if (trimmedName.toLowerCase() === 'admin') {
+        setIsAdmin(true);
+        setSessionUser('管理員');
+      } else {
+        setIsAdmin(false);
+        setSessionUser(trimmedName);
+      }
+      setLoading(false);
+      showMessage(`歡迎回來，${trimmedName} ✨`);
+    }, 500);
+  };
+
+  const handleLogout = async () => {
+    setLoading(true);
+    setSessionUser(null);
+    setIsAdmin(false);
+    setTimeout(() => {
+      setLoading(false);
+      showMessage("登出成功，明天也要加油喔！🌸");
+    }, 500);
+  };
+
+  const submitReport = async () => {
+    if (!user) {
+      showMessage("尚未連線，請稍候 🌸");
+      return;
+    }
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+     
+      const currentDays = new Set(reports.filter(r => r.userName === sessionUser).map(r => r.date)).size;
+      const newDays = currentDays + 1;
+
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), {
+        userName: sessionUser,
+        userId: user.uid,
+        date: today,
+        timestamp: new Date().toISOString(),
+        status: 'completed'
+      });
+
+      showMessage("回報成功！妳真的太棒了 🎊");
+
+      if (ACHIEVEMENTS[newDays]) {
+        setUnlockedAchievement({
+          day: newDays,
+          ...ACHIEVEMENTS[newDays]
+        });
+      }
+
+    } catch (err) {
+      showMessage("回報失敗 🌸");
+    }
+  };
+
+  const showMessage = (msg) => {
+    setMessage(msg);
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const adminAddMember = async (name) => {
+    if (!name.trim()) return;
+    try {
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', name.trim()), {
+        name: name.trim(),
+        createdAt: new Date().toISOString()
+      });
+      showMessage(`已新增成員：${name} 🌸`);
+    } catch (err) {
+      showMessage("新增失敗 🌸");
+    }
+  };
+
+  const adminDeleteMember = async (name) => {
+    try {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', name));
+      showMessage(`已刪除成員：${name} 🌸`);
+    } catch (err) {
+      showMessage("刪除失敗 🌸");
+    }
+  };
+
+  const adminDeleteReport = async (reportId) => {
+    try {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId));
+      showMessage("紀錄已刪除 🌸");
+    } catch (err) {
+      console.error("Delete report error:", err);
+      showMessage("刪除失敗 🌸");
+    }
+  };
+
+  const adminManualReport = async (memberName, reportDate) => {
+    if (!user) return;
+    try {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), {
+        userName: memberName,
+        userId: "admin-manual",
+        date: reportDate,
+        timestamp: new Date().toISOString(),
+        status: 'completed'
+      });
+      showMessage(`已幫 ${memberName} 補打卡 (${reportDate}) 🌸`);
+    } catch (err) {
+      console.error(err);
+      showMessage("補打卡失敗 🌸");
+    }
+  };
+
+  const todayAllReports = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return reports.filter(r => r.date === today);
+  }, [reports]);
+
+  const userHistory = useMemo(() => {
+    return reports
+      .filter(r => r.userName === sessionUser)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  }, [reports, sessionUser]);
+
+  const hasReportedToday = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return userHistory.some(r => r.date === today);
+  }, [userHistory]);
+
+  const stats = useMemo(() => {
+    const total = members.length;
+    const done = todayAllReports.length;
+    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+   
+    const today = new Date();
+    let targetDate = new Date(today.getFullYear(), 4, 17);
+    if (today > targetDate) {
+      targetDate.setFullYear(today.getFullYear() + 1);
+    }
+    const diffTime = Math.abs(targetDate - today);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+   
+    return { percent, diffDays, total, done };
+  }, [members, todayAllReports]);
+
+  const rankingList = useMemo(() => {
+    const data = {};
+    reports.forEach(r => {
+      if (!data[r.userName]) data[r.userName] = new Set();
+      data[r.userName].add(r.date);
+    });
+    return Object.entries(data)
+      .map(([name, dates]) => {
+        const count = dates.size;
+        let title = "";
+        if (count >= 30) title = ACHIEVEMENTS[30].title;
+        else if (count >= 20) title = ACHIEVEMENTS[20].title;
+        else if (count >= 10) title = ACHIEVEMENTS[10].title;
+        return { name, count, title };
+      })
+      .sort((a, b) => b.count - a.count);
+  }, [reports]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FFF5F7] flex items-center justify-center">
+        <div className="text-pink-400 animate-bounce flex flex-col items-center gap-4">
+          <Heart size={48} fill="currentColor" />
+          <span className="text-pink-300 font-medium">系統載入中...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FFF5F7] text-gray-700 font-sans pb-20">
+      <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 p-4 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-md mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="bg-pink-100 p-2 rounded-xl text-pink-500 shadow-inner">
+              <Dumbbell size={20} />
+            </div>
+            <h1 className="text-xl font-black text-pink-600 tracking-wider">體能小仙女</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowLeaderboard(true)}
+              className="bg-yellow-100 p-2 rounded-full text-yellow-600 hover:bg-yellow-200 transition-colors shadow-sm"
+            >
+              <Trophy size={20} />
+            </button>
+            {sessionUser && (
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1 text-gray-400 hover:text-rose-500 transition-colors text-sm font-bold bg-gray-50 px-3 py-1.5 rounded-full"
+              >
+                <LogOut size={16} />
