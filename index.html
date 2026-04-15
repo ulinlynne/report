@@ -121,7 +121,6 @@
         if (!sessionUser) return;
         const today = new Date().toISOString().split('T')[0];
         
-        // 為了避免過長斷行，這裡分開寫
         const userReports = reports.filter(r => r.userName === sessionUser);
         const userDates = userReports.map(r => r.date);
         const currentDays = new Set(userDates).size;
@@ -354,7 +353,7 @@
             <div className="fixed inset-0 bg-pink-500/90 backdrop-blur-md z-[200] flex items-center justify-center p-8 animate-in fade-in duration-500">
               <div className="bg-white rounded-[40px] w-full max-w-sm p-8 text-center space-y-6 shadow-[0_0_50px_rgba(255,255,255,0.3)] animate-in zoom-in-50 slide-in-from-bottom-20 duration-700">
                 <div className="relative inline-block">
-                  <div className={`w-24 h-24 rounded-[32px] bg-gradient-to-br ${unlockedAchievement.color} flex items-center justify-center shadow-xl rotate-12 scale-110 mb-4 mx-auto`}>
+                  <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-xl rotate-12 scale-110 mb-4 mx-auto">
                     {React.cloneElement(unlockedAchievement.icon, { size: 48 })}
                   </div>
                   <div className="absolute -top-4 -right-4 animate-bounce"><PartyPopper className="text-yellow-400" size={32} /></div>
@@ -366,7 +365,7 @@
                   <p className="text-pink-500 font-bold">妳已經累積打卡 <span className="text-2xl">{unlockedAchievement.day}</span> 天了 ✨</p>
                 </div>
                 <p className="text-gray-400 text-sm italic px-4">仙路漫漫，唯有堅持能讓妳閃耀。<br/>繼續保持，讓大家看到妳的仙氣！</p>
-                <button onClick={() => setUnlockedAchievement(null)} className={`w-full bg-gradient-to-r ${unlockedAchievement.color} text-white py-4 rounded-3xl font-black text-lg shadow-lg hover:brightness-110 active:scale-95 transition-all mt-4`}>
+                <button onClick={() => setUnlockedAchievement(null)} className="w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white py-4 rounded-3xl font-black text-lg shadow-lg hover:brightness-110 active:scale-95 transition-all mt-4">
                   收下榮耀 💖
                 </button>
               </div>
