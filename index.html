@@ -1,343 +1,400 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { initializeApp } from 'firebase/app';
-import {
-  getAuth,
-  signInAnonymously,
-  signInWithCustomToken,
-  onAuthStateChanged,
-  signOut
-} from 'firebase/auth';
-import {
-  getFirestore,
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  addDoc,
-  deleteDoc,
-  onSnapshot,
-  query
-} from 'firebase/firestore';
-import {
-  Heart,
-  Dumbbell,
-  Calendar,
-  LogOut,
-  CheckCircle2,
-  Trophy,
-  ClipboardList,
-  Sparkles,
-  User,
-  ArrowRight,
-  History,
-  Users,
-  Clock,
-  Plus,
-  Trash2,
-  Edit2,
-  X,
-  Save,
-  Flag,
-  Zap,
-  CalendarCheck,
-  ChevronDown,
-  ChevronUp,
-  Medal,
-  Star,
-  Crown,
-  PartyPopper
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>可愛運動回報系統</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.2.0",
+      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+      "lucide-react": "https://esm.sh/lucide-react@0.292.0?deps=react@18.2.0"
+    }
+  }
+  </script>
 
-// --- Firebase Configuration ---
-const firebaseConfig = JSON.parse(__firebase_config);
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'cute-fitness-system-v4';
+  <style>
+    .animate-in { animation: fadeIn 0.6s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="bg-[#FFF5F7]">
+  
+  <div id="root"></div>
 
-// 成就配置
-const ACHIEVEMENTS = {
-  10: { title: "初萌小仙芽", color: "from-green-300 to-teal-400", icon: <Sparkles className="text-white" /> },
-  20: { title: "霓裳輕盈仙子", color: "from-purple-400 to-pink-500", icon: <Medal className="text-white" /> },
-  30: { title: "凌波閃耀上仙", color: "from-blue-400 to-indigo-500", icon: <Star className="text-white" fill="white" /> }
-};
+  <script type="text/babel" data-type="module">
+    import React, { useState, useEffect, useMemo } from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { 
+      Heart, Dumbbell, Calendar, LogOut, CheckCircle2, Trophy, ClipboardList, 
+      Sparkles, User, ArrowRight, History, Users, Clock, Plus, Trash2, Edit2, 
+      X, Save, Flag, Zap, CalendarCheck, ChevronDown, ChevronUp, Medal, Star, 
+      Crown, PartyPopper
+    } from 'lucide-react';
 
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [sessionUser, setSessionUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [reports, setReports] = useState([]);
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState(null);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
- 
-  // 成就解鎖視窗狀態
-  const [unlockedAchievement, setUnlockedAchievement] = useState(null);
+    // 成就配置
+    const ACHIEVEMENTS = {
+      10: { title: "初萌小仙芽", color: "from-green-300 to-teal-400", icon: <Sparkles className="text-white" /> },
+      20: { title: "霓裳輕盈仙子", color: "from-purple-400 to-pink-500", icon: <Medal className="text-white" /> },
+      30: { title: "凌波閃耀上仙", color: "from-blue-400 to-indigo-500", icon: <Star className="text-white" fill="white" /> }
+    };
 
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (err) {
-        console.error("Auth initialization failed:", err);
-      }
-    };
-    initAuth();
+    function App() {
+      // --- 免資料庫 (Local Storage) 初始化 ---
+      const [sessionUser, setSessionUser] = useState(() => localStorage.getItem('fitness_user'));
+      const [isAdmin, setIsAdmin] = useState(() => localStorage.getItem('fitness_user') === '管理員');
+      const [members, setMembers] = useState(() => JSON.parse(localStorage.getItem('fitness_members') || '[]'));
+      const [reports, setReports] = useState(() => JSON.parse(localStorage.getItem('fitness_reports') || '[]'));
+      
+      const [loading, setLoading] = useState(false);
+      const [message, setMessage] = useState(null);
+      const [showLeaderboard, setShowLeaderboard] = useState(false);
+      const [unlockedAchievement, setUnlockedAchievement] = useState(null);
 
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+      // 資料變更時自動存入瀏覽器
+      useEffect(() => {
+        localStorage.setItem('fitness_members', JSON.stringify(members));
+      }, [members]);
 
-  useEffect(() => {
-    if (!user) return;
+      useEffect(() => {
+        localStorage.setItem('fitness_reports', JSON.stringify(reports));
+      }, [reports]);
 
-    const reportsRef = collection(db, 'artifacts', appId, 'public', 'data', 'reports');
-    const unsubReports = onSnapshot(reportsRef,
-      (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setReports(data);
-      },
-      (err) => console.error("Reports fetch error:", err)
-    );
+      useEffect(() => {
+        if (sessionUser) {
+          localStorage.setItem('fitness_user', sessionUser);
+        } else {
+          localStorage.removeItem('fitness_user');
+        }
+      }, [sessionUser]);
 
-    const membersRef = collection(db, 'artifacts', appId, 'public', 'data', 'members');
-    const unsubMembers = onSnapshot(membersRef,
-      (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setMembers(data);
-      },
-      (err) => console.error("Members fetch error:", err)
-    );
+      const showMessage = (msg) => {
+        setMessage(msg);
+        setTimeout(() => setMessage(null), 3000);
+      };
 
-    return () => {
-      unsubReports();
-      unsubMembers();
-    };
-  }, [user]);
+      const handleLogin = (name) => {
+        const trimmedName = name.trim();
+        if (!trimmedName) {
+          showMessage("名字不能空空的喔 🌸");
+          return;
+        }
 
-  const handleLogin = async (name) => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      showMessage("名字不能空空的喔 🌸");
-      return;
-    }
+        setLoading(true);
+        const isAdm = trimmedName.toLowerCase() === 'admin';
+        
+        // 如果不是管理員，且尚未在成員名單中，自動加入
+        if (!isAdm && !members.find(m => m.name === trimmedName)) {
+          setMembers(prev => [...prev, { id: Date.now().toString(), name: trimmedName, createdAt: new Date().toISOString() }]);
+        }
 
-    setLoading(true);
-    if (trimmedName.toLowerCase() !== 'admin') {
-      try {
-        const memberRef = doc(db, 'artifacts', appId, 'public', 'data', 'members', trimmedName);
-        const memberSnap = await getDoc(memberRef);
-        if (!memberSnap.exists()) {
-          await setDoc(memberRef, {
-            name: trimmedName,
-            createdAt: new Date().toISOString()
-          });
-        }
-      } catch (err) {
-        console.error("Member registration error:", err);
-      }
-    }
+        setTimeout(() => {
+          if (isAdm) {
+            setIsAdmin(true);
+            setSessionUser('管理員');
+          } else {
+            setIsAdmin(false);
+            setSessionUser(trimmedName);
+          }
+          setLoading(false);
+          showMessage(`歡迎回來，${trimmedName} ✨`);
+        }, 500);
+      };
 
-    setTimeout(() => {
-      if (trimmedName.toLowerCase() === 'admin') {
-        setIsAdmin(true);
-        setSessionUser('管理員');
-      } else {
-        setIsAdmin(false);
-        setSessionUser(trimmedName);
-      }
-      setLoading(false);
-      showMessage(`歡迎回來，${trimmedName} ✨`);
-    }, 500);
-  };
+      const handleLogout = () => {
+        setLoading(true);
+        setTimeout(() => {
+          setSessionUser(null);
+          setIsAdmin(false);
+          setLoading(false);
+          showMessage("登出成功，明天也要加油喔！🌸");
+        }, 500);
+      };
 
-  const handleLogout = async () => {
-    setLoading(true);
-    setSessionUser(null);
-    setIsAdmin(false);
-    setTimeout(() => {
-      setLoading(false);
-      showMessage("登出成功，明天也要加油喔！🌸");
-    }, 500);
-  };
+      const submitReport = () => {
+        if (!sessionUser) return;
 
-  const submitReport = async () => {
-    if (!user) {
-      showMessage("尚未連線，請稍候 🌸");
-      return;
-    }
+        const today = new Date().toISOString().split('T')[0];
+        const currentDays = new Set(reports.filter(r => r.userName === sessionUser).map(r => r.date)).size;
+        const newDays = currentDays + 1;
 
-    try {
-      const today = new Date().toISOString().split('T')[0];
-     
-      const currentDays = new Set(reports.filter(r => r.userName === sessionUser).map(r => r.date)).size;
-      const newDays = currentDays + 1;
+        const newReport = {
+          id: Date.now().toString(),
+          userName: sessionUser,
+          userId: sessionUser,
+          date: today,
+          timestamp: new Date().toISOString(),
+          status: 'completed'
+        };
 
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), {
-        userName: sessionUser,
-        userId: user.uid,
-        date: today,
-        timestamp: new Date().toISOString(),
-        status: 'completed'
-      });
+        setReports(prev => [...prev, newReport]);
+        showMessage("回報成功！妳真的太棒了 🎊");
 
-      showMessage("回報成功！妳真的太棒了 🎊");
+        if (ACHIEVEMENTS[newDays]) {
+          setUnlockedAchievement({ day: newDays, ...ACHIEVEMENTS[newDays] });
+        }
+      };
 
-      if (ACHIEVEMENTS[newDays]) {
-        setUnlockedAchievement({
-          day: newDays,
-          ...ACHIEVEMENTS[newDays]
-        });
-      }
+      const adminAddMember = (name) => {
+        if (!name.trim()) return;
+        setMembers(prev => [...prev, { id: Date.now().toString(), name: name.trim(), createdAt: new Date().toISOString() }]);
+        showMessage(`已新增成員：${name} 🌸`);
+      };
 
-    } catch (err) {
-      showMessage("回報失敗 🌸");
-    }
-  };
+      const adminDeleteMember = (id) => {
+        const member = members.find(m => m.id === id);
+        setMembers(prev => prev.filter(m => m.id !== id));
+        showMessage(`已刪除成員：${member?.name} 🌸`);
+      };
 
-  const showMessage = (msg) => {
-    setMessage(msg);
-    setTimeout(() => setMessage(null), 3000);
-  };
+      const adminDeleteReport = (reportId) => {
+        setReports(prev => prev.filter(r => r.id !== reportId));
+        showMessage("紀錄已刪除 🌸");
+      };
 
-  const adminAddMember = async (name) => {
-    if (!name.trim()) return;
-    try {
-      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', name.trim()), {
-        name: name.trim(),
-        createdAt: new Date().toISOString()
-      });
-      showMessage(`已新增成員：${name} 🌸`);
-    } catch (err) {
-      showMessage("新增失敗 🌸");
-    }
-  };
+      const adminManualReport = (memberName, reportDate) => {
+        const newReport = {
+          id: Date.now().toString(),
+          userName: memberName,
+          userId: "admin-manual",
+          date: reportDate,
+          timestamp: new Date().toISOString(),
+          status: 'completed'
+        };
+        setReports(prev => [...prev, newReport]);
+        showMessage(`已幫 ${memberName} 補打卡 (${reportDate}) 🌸`);
+      };
 
-  const adminDeleteMember = async (name) => {
-    try {
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', name));
-      showMessage(`已刪除成員：${name} 🌸`);
-    } catch (err) {
-      showMessage("刪除失敗 🌸");
-    }
-  };
+      const todayAllReports = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return reports.filter(r => r.date === today);
+      }, [reports]);
 
-  const adminDeleteReport = async (reportId) => {
-    try {
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId));
-      showMessage("紀錄已刪除 🌸");
-    } catch (err) {
-      console.error("Delete report error:", err);
-      showMessage("刪除失敗 🌸");
-    }
-  };
+      const userHistory = useMemo(() => {
+        return reports
+          .filter(r => r.userName === sessionUser)
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      }, [reports, sessionUser]);
 
-  const adminManualReport = async (memberName, reportDate) => {
-    if (!user) return;
-    try {
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), {
-        userName: memberName,
-        userId: "admin-manual",
-        date: reportDate,
-        timestamp: new Date().toISOString(),
-        status: 'completed'
-      });
-      showMessage(`已幫 ${memberName} 補打卡 (${reportDate}) 🌸`);
-    } catch (err) {
-      console.error(err);
-      showMessage("補打卡失敗 🌸");
-    }
-  };
+      const hasReportedToday = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return userHistory.some(r => r.date === today);
+      }, [userHistory]);
 
-  const todayAllReports = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    return reports.filter(r => r.date === today);
-  }, [reports]);
+      const stats = useMemo(() => {
+        const total = members.length;
+        const done = todayAllReports.length;
+        const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+        
+        const today = new Date();
+        let targetDate = new Date(today.getFullYear(), 4, 17);
+        if (today > targetDate) {
+          targetDate.setFullYear(today.getFullYear() + 1);
+        }
+        const diffTime = Math.abs(targetDate - today);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return { percent, diffDays, total, done };
+      }, [members, todayAllReports]);
 
-  const userHistory = useMemo(() => {
-    return reports
-      .filter(r => r.userName === sessionUser)
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  }, [reports, sessionUser]);
+      const rankingList = useMemo(() => {
+        const data = {};
+        reports.forEach(r => {
+          if (!data[r.userName]) data[r.userName] = new Set();
+          data[r.userName].add(r.date);
+        });
+        return Object.entries(data)
+          .map(([name, dates]) => {
+            const count = dates.size;
+            let title = "";
+            if (count >= 30) title = ACHIEVEMENTS[30].title;
+            else if (count >= 20) title = ACHIEVEMENTS[20].title;
+            else if (count >= 10) title = ACHIEVEMENTS[10].title;
+            return { name, count, title };
+          })
+          .sort((a, b) => b.count - a.count);
+      }, [reports]);
 
-  const hasReportedToday = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    return userHistory.some(r => r.date === today);
-  }, [userHistory]);
+      if (loading) {
+        return (
+          <div className="min-h-screen bg-[#FFF5F7] flex items-center justify-center">
+            <div className="text-pink-400 animate-bounce flex flex-col items-center gap-4">
+              <Heart size={48} fill="currentColor" />
+              <span className="text-pink-300 font-medium">系統載入中...</span>
+            </div>
+          </div>
+        );
+      }
 
-  const stats = useMemo(() => {
-    const total = members.length;
-    const done = todayAllReports.length;
-    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-   
-    const today = new Date();
-    let targetDate = new Date(today.getFullYear(), 4, 17);
-    if (today > targetDate) {
-      targetDate.setFullYear(today.getFullYear() + 1);
-    }
-    const diffTime = Math.abs(targetDate - today);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-   
-    return { percent, diffDays, total, done };
-  }, [members, todayAllReports]);
+      return (
+        <div className="min-h-screen bg-[#FFF5F7] text-gray-700 font-sans pb-20">
+          <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 p-4 sticky top-0 z-50 shadow-sm">
+            <div className="max-w-md mx-auto flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="bg-pink-100 p-2 rounded-xl text-pink-500 shadow-inner">
+                  <Dumbbell size={20} />
+                </div>
+                <h1 className="text-xl font-black text-pink-600 tracking-wider">體能小仙女</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowLeaderboard(true)} className="bg-yellow-100 p-2 rounded-full text-yellow-600 hover:bg-yellow-200 transition-colors shadow-sm">
+                  <Trophy size={20} />
+                </button>
+                {sessionUser && (
+                  <button onClick={handleLogout} className="flex items-center gap-1 text-gray-400 hover:text-rose-500 transition-colors text-sm font-bold bg-gray-50 px-3 py-1.5 rounded-full">
+                    <LogOut size={16} /> 登出
+                  </button>
+                )}
+              </div>
+            </div>
+          </header>
 
-  const rankingList = useMemo(() => {
-    const data = {};
-    reports.forEach(r => {
-      if (!data[r.userName]) data[r.userName] = new Set();
-      data[r.userName].add(r.date);
-    });
-    return Object.entries(data)
-      .map(([name, dates]) => {
-        const count = dates.size;
-        let title = "";
-        if (count >= 30) title = ACHIEVEMENTS[30].title;
-        else if (count >= 20) title = ACHIEVEMENTS[20].title;
-        else if (count >= 10) title = ACHIEVEMENTS[10].title;
-        return { name, count, title };
-      })
-      .sort((a, b) => b.count - a.count);
-  }, [reports]);
+          <main className="max-w-md mx-auto p-4 space-y-6">
+            {message && (
+              <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-white border-2 border-pink-200 px-6 py-3 rounded-full shadow-xl z-[60] animate-in fade-in slide-in-from-top-4">
+                <span className="text-pink-500 font-bold">{message}</span>
+              </div>
+            )}
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#FFF5F7] flex items-center justify-center">
-        <div className="text-pink-400 animate-bounce flex flex-col items-center gap-4">
-          <Heart size={48} fill="currentColor" />
-          <span className="text-pink-300 font-medium">系統載入中...</span>
-        </div>
-      </div>
-    );
-  }
+            <div className="bg-white p-4 rounded-[24px] shadow-sm border border-pink-50 space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="bg-yellow-100 p-1.5 rounded-lg text-yellow-500"><Zap size={16} fill="currentColor" /></div>
+                  <span className="text-xs font-black text-gray-600">今日達成比例</span>
+                </div>
+                <span className="text-sm font-black text-pink-500">{stats.percent}%</span>
+              </div>
+              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-pink-300 to-rose-400 transition-all duration-1000 ease-out" style={{ width: `${stats.percent}%` }} />
+              </div>
+              <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+                <span>已打卡: {stats.done} 人</span>
+                <span>總成員: {stats.total} 人</span>
+              </div>
+            </div>
 
-  return (
-    <div className="min-h-screen bg-[#FFF5F7] text-gray-700 font-sans pb-20">
-      <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 p-4 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-md mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="bg-pink-100 p-2 rounded-xl text-pink-500 shadow-inner">
-              <Dumbbell size={20} />
-            </div>
-            <h1 className="text-xl font-black text-pink-600 tracking-wider">體能小仙女</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowLeaderboard(true)}
-              className="bg-yellow-100 p-2 rounded-full text-yellow-600 hover:bg-yellow-200 transition-colors shadow-sm"
-            >
-              <Trophy size={20} />
-            </button>
-            {sessionUser && (
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1 text-gray-400 hover:text-rose-500 transition-colors text-sm font-bold bg-gray-50 px-3 py-1.5 rounded-full"
-              >
-                <LogOut size={16} />
+            {!sessionUser ? (
+              <LoginView onLogin={handleLogin} todayReports={todayAllReports} allMembers={members} />
+            ) : isAdmin ? (
+              <AdminDashboard reports={reports} members={members} onAddMember={adminAddMember} onDeleteMember={adminDeleteMember} onDeleteReport={adminDeleteReport} onManualReport={adminManualReport} />
+            ) : (
+              <UserDashboard userName={sessionUser} history={userHistory} hasReportedToday={hasReportedToday} onSubmit={submitReport} diffDays={stats.diffDays} />
+            )}
+
+            {!sessionUser && (
+              <div className="bg-white p-4 rounded-[24px] shadow-sm border border-pink-50 flex items-center justify-between mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+                <div className="flex items-center gap-3">
+                  <div className="bg-rose-100 p-2 rounded-xl text-rose-500"><Flag size={20} /></div>
+                  <div>
+                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">距離 5/17 目標</div>
+                    <div className="text-lg font-black text-gray-800">還有 <span className="text-rose-500">{stats.diffDays}</span> 天</div>
+                  </div>
+                </div>
+                <div className="bg-pink-50 px-3 py-1 rounded-full text-[10px] font-bold text-pink-400">加油姊妹們！</div>
+              </div>
+            )}
+          </main>
+
+          {showLeaderboard && (
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in">
+              <div className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-gradient-to-r from-yellow-400 to-orange-400 p-6 text-white text-center relative">
+                  <button onClick={() => setShowLeaderboard(false)} className="absolute top-4 right-4 bg-white/20 p-1.5 rounded-full hover:bg-white/40"><X size={20} /></button>
+                  <Trophy size={48} className="mx-auto mb-2 drop-shadow-md" fill="currentColor" />
+                  <h2 className="text-2xl font-black tracking-wider">勤奮仙女榜</h2>
+                  <p className="text-xs opacity-90 font-bold">每一分汗水都有被記錄 ✨</p>
+                </div>
+                <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
+                  {rankingList.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 flex justify-center">
+                          {idx === 0 ? <Crown className="text-yellow-500" size={20} /> :
+                           idx === 1 ? <Medal className="text-gray-400" size={18} /> :
+                           idx === 2 ? <Medal className="text-orange-500" size={18} /> :
+                           <span className="text-gray-300 font-black italic text-xs">{idx + 1}</span>}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-gray-700">{item.name}</span>
+                          </div>
+                          {item.title && (
+                            <div className="text-[9px] font-bold text-pink-400 uppercase tracking-tight bg-pink-50 px-1.5 rounded border border-pink-100 inline-block mt-0.5">{item.title}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-black text-yellow-600 leading-none">{item.count}</div>
+                        <div className="text-[8px] text-gray-400 font-bold mt-1">天數</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-4 bg-gray-50 border-t border-gray-100">
+                  <button onClick={() => setShowLeaderboard(false)} className="w-full bg-white text-gray-500 py-3 rounded-2xl font-black text-sm shadow-sm border border-gray-200">關閉視窗</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {unlockedAchievement && (
+            <div className="fixed inset-0 bg-pink-500/90 backdrop-blur-md z-[200] flex items-center justify-center p-8 animate-in fade-in duration-500">
+              <div className="bg-white rounded-[40px] w-full max-w-sm p-8 text-center space-y-6 shadow-[0_0_50px_rgba(255,255,255,0.3)] animate-in zoom-in-50 slide-in-from-bottom-20 duration-700">
+                <div className="relative inline-block">
+                  <div className={`w-24 h-24 rounded-[32px] bg-gradient-to-br ${unlockedAchievement.color} flex items-center justify-center shadow-xl rotate-12 scale-110 mb-4 mx-auto`}>
+                    {React.cloneElement(unlockedAchievement.icon, { size: 48 })}
+                  </div>
+                  <div className="absolute -top-4 -right-4 animate-bounce"><PartyPopper className="text-yellow-400" size={32} /></div>
+                  <div className="absolute -bottom-2 -left-4 animate-pulse"><Sparkles className="text-pink-400" size={24} /></div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-gray-400 text-sm font-black tracking-widest uppercase">恭喜晉升！</h3>
+                  <h2 className="text-3xl font-black text-gray-800 tracking-tight">{unlockedAchievement.title}</h2>
+                  <p className="text-pink-500 font-bold">妳已經累積打卡 <span className="text-2xl">{unlockedAchievement.day}</span> 天了 ✨</p>
+                </div>
+                <p className="text-gray-400 text-sm italic px-4">仙路漫漫，唯有堅持能讓妳閃耀。<br/>繼續保持，讓大家看到妳的仙氣！</p>
+                <button onClick={() => setUnlockedAchievement(null)} className={`w-full bg-gradient-to-r ${unlockedAchievement.color} text-white py-4 rounded-3xl font-black text-lg shadow-lg hover:brightness-110 active:scale-95 transition-all mt-4`}>
+                  收下榮耀 💖
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function AchievementBadge({ count }) {
+      const achievement = useMemo(() => {
+        if (count >= 30) return ACHIEVEMENTS[30];
+        if (count >= 20) return ACHIEVEMENTS[20];
+        if (count >= 10) return ACHIEVEMENTS[10];
+        return null;
+      }, [count]);
+
+      if (!achievement) return null;
+
+      return (
+        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r ${achievement.color} shadow-sm animate-in zoom-in duration-300`}>
+          {React.cloneElement(achievement.icon, { size: 12 })}
+          <span className="text-[10px] font-black text-white tracking-wide">{achievement.title}</span>
+        </div>
+      );
+    }
+
+    function LoginView({ onLogin, todayReports, allMembers }) {
+      const [name, setName] = useState('');
+      const pendingMembers = useMemo(() => {
+        const todayDoneNames = todayReports.map(r => r.userName);
+        return allMembers.filter(m => !todayDoneNames.includes(m.name));
+      }, [allMembers, todayReports]);
+
+      return (
+        <div className="flex flex-col items-center space-y-8 animate-in fade-in duration-700">
+          <div className="relative pt-4 text-center">
+            <img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=400&fit=crop" className="w-40 h-40 rounded-[40px] border-4 border-white shadow-2xl object-cover rotate
