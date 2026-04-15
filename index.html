@@ -41,7 +41,7 @@
     import { getFirestore, collection, doc, setDoc, getDoc, addDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
     import { 
       Heart, Dumbbell, Calendar, LogOut, CheckCircle2, Trophy, ClipboardList, 
-      Sparkles, User, ArrowRight, History, Clock, Plus, Trash2, Edit2, 
+      Sparkles, User, ArrowRight, History, Users, Clock, Plus, Trash2, Edit2, 
       X, Save, Flag, Zap, CalendarCheck, ChevronDown, ChevronUp, Medal, Star, 
       Crown, PartyPopper
     } from 'lucide-react';
@@ -267,3 +267,427 @@
         
         return entries.sort((a, b) => b.count - a.count);
       }, [reports]);
+
+      if (loading) {
+        return (
+          <div className="min-h-screen bg-[#FFF5F7] flex items-center justify-center">
+            <div className="text-pink-400 animate-bounce flex flex-col items-center gap-4">
+              <Heart size={48} fill="currentColor" />
+              <span className="text-pink-300 font-medium">系統連線中...</span>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-[#FFF5F7] text-gray-700 font-sans pb-20">
+          <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 p-4 sticky top-0 z-50 shadow-sm">
+            <div className="max-w-md mx-auto flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <div className="bg-pink-100 p-2 rounded-xl text-pink-500 shadow-inner">
+                  <Dumbbell size={20} />
+                </div>
+                <h1 className="text-xl font-black text-pink-600 tracking-wider">體能小仙女</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowLeaderboard(true)} className="bg-yellow-100 p-2 rounded-full text-yellow-600 hover:bg-yellow-200 transition-colors shadow-sm">
+                  <Trophy size={20} />
+                </button>
+                {sessionUser && (
+                  <button onClick={handleLogout} className="flex items-center gap-1 text-gray-400 hover:text-rose-500 transition-colors text-sm font-bold bg-gray-50 px-3 py-1.5 rounded-full">
+                    <LogOut size={16} /> 登出
+                  </button>
+                )}
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-md mx-auto p-4 space-y-6">
+            {message && (
+              <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-white border-2 border-pink-200 px-6 py-3 rounded-full shadow-xl z-[60] animate-in fade-in slide-in-from-top-4">
+                <span className="text-pink-500 font-bold">{message}</span>
+              </div>
+            )}
+
+            <div className="bg-white p-4 rounded-[24px] shadow-sm border border-pink-50 space-y-3 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="bg-yellow-100 p-1.5 rounded-lg text-yellow-500"><Zap size={16} fill="currentColor" /></div>
+                  <span className="text-xs font-black text-gray-600">今日達成比例</span>
+                </div>
+                <span className="text-sm font-black text-pink-500">{stats.percent}%</span>
+              </div>
+              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-pink-300 to-rose-400 transition-all duration-1000 ease-out" style={{ width: `${stats.percent}%` }} />
+              </div>
+              <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+                <span>已打卡: {stats.done} 人</span>
+                <span>總成員: {stats.total} 人</span>
+              </div>
+            </div>
+
+            {!sessionUser ? (
+              <LoginView onLogin={handleLogin} todayReports={todayAllReports} allMembers={members} />
+            ) : isAdmin ? (
+              <AdminDashboard reports={reports} members={members} onAddMember={adminAddMember} onDeleteMember={adminDeleteMember} onDeleteReport={adminDeleteReport} onManualReport={adminManualReport} />
+            ) : (
+              <UserDashboard userName={sessionUser} history={userHistory} hasReportedToday={hasReportedToday} onSubmit={submitReport} diffDays={stats.diffDays} />
+            )}
+
+            {!sessionUser && (
+              <div className="bg-white p-4 rounded-[24px] shadow-sm border border-pink-50 flex items-center justify-between mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+                <div className="flex items-center gap-3">
+                  <div className="bg-rose-100 p-2 rounded-xl text-rose-500"><Flag size={20} /></div>
+                  <div>
+                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">距離 5/17 目標</div>
+                    <div className="text-lg font-black text-gray-800">還有 <span className="text-rose-500">{stats.diffDays}</span> 天</div>
+                  </div>
+                </div>
+                <div className="bg-pink-50 px-3 py-1 rounded-full text-[10px] font-bold text-pink-400">加油姊妹們！</div>
+              </div>
+            )}
+          </main>
+
+          {showLeaderboard && (
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in">
+              <div className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="bg-gradient-to-r from-yellow-400 to-orange-400 p-6 text-white text-center relative">
+                  <button onClick={() => setShowLeaderboard(false)} className="absolute top-4 right-4 bg-white/20 p-1.5 rounded-full hover:bg-white/40"><X size={20} /></button>
+                  <Trophy size={48} className="mx-auto mb-2 drop-shadow-md" fill="currentColor" />
+                  <h2 className="text-2xl font-black tracking-wider">勤奮仙女榜</h2>
+                  <p className="text-xs opacity-90 font-bold">每一分汗水都有被記錄 ✨</p>
+                </div>
+                <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
+                  {rankingList.length === 0 ? (
+                    <div className="text-center text-gray-400 py-4 text-sm">還沒有人上榜喔，快來搶下第一名！</div>
+                  ) : (
+                    rankingList.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 flex justify-center">
+                            {idx === 0 ? <Crown className="text-yellow-500" size={20} /> :
+                             idx === 1 ? <Medal className="text-gray-400" size={18} /> :
+                             idx === 2 ? <Medal className="text-orange-500" size={18} /> :
+                             <span className="text-gray-300 font-black italic text-xs">{idx + 1}</span>}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-gray-700">{item.name}</span>
+                            </div>
+                            {item.title && (
+                              <div className="text-[9px] font-bold text-pink-400 uppercase tracking-tight bg-pink-50 px-1.5 rounded border border-pink-100 inline-block mt-0.5">{item.title}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-black text-yellow-600 leading-none">{item.count}</div>
+                          <div className="text-[8px] text-gray-400 font-bold mt-1">天數</div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="p-4 bg-gray-50 border-t border-gray-100">
+                  <button onClick={() => setShowLeaderboard(false)} className="w-full bg-white text-gray-500 py-3 rounded-2xl font-black text-sm shadow-sm border border-gray-200">關閉視窗</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {unlockedAchievement && (
+            <div className="fixed inset-0 bg-pink-500/90 backdrop-blur-md z-[200] flex items-center justify-center p-8 animate-in fade-in duration-500">
+              <div className="bg-white rounded-[40px] w-full max-w-sm p-8 text-center space-y-6 shadow-[0_0_50px_rgba(255,255,255,0.3)] animate-in zoom-in-50 slide-in-from-bottom-20 duration-700">
+                <div className="relative inline-block">
+                  <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-xl rotate-12 scale-110 mb-4 mx-auto">
+                    {React.cloneElement(unlockedAchievement.icon, { size: 48 })}
+                  </div>
+                  <div className="absolute -top-4 -right-4 animate-bounce"><PartyPopper className="text-yellow-400" size={32} /></div>
+                  <div className="absolute -bottom-2 -left-4 animate-pulse"><Sparkles className="text-pink-400" size={24} /></div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-gray-400 text-sm font-black tracking-widest uppercase">恭喜晉升！</h3>
+                  <h2 className="text-3xl font-black text-gray-800 tracking-tight">{unlockedAchievement.title}</h2>
+                  <p className="text-pink-500 font-bold">妳已經累積打卡 <span className="text-2xl">{unlockedAchievement.day}</span> 天了 ✨</p>
+                </div>
+                <p className="text-gray-400 text-sm italic px-4">仙路漫漫，唯有堅持能讓妳閃耀。<br/>繼續保持，讓大家看到妳的仙氣！</p>
+                <button onClick={() => setUnlockedAchievement(null)} className="w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white py-4 rounded-3xl font-black text-lg shadow-lg hover:brightness-110 active:scale-95 transition-all mt-4">
+                  收下榮耀 💖
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function AchievementBadge({ count }) {
+      const achievement = useMemo(() => {
+        if (count >= 30) return ACHIEVEMENTS[30];
+        if (count >= 20) return ACHIEVEMENTS[20];
+        if (count >= 10) return ACHIEVEMENTS[10];
+        return null;
+      }, [count]);
+
+      if (!achievement) return null;
+
+      return (
+        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r ${achievement.color} shadow-sm animate-in zoom-in duration-300`}>
+          {React.cloneElement(achievement.icon, { size: 12 })}
+          <span className="text-[10px] font-black text-white tracking-wide">{achievement.title}</span>
+        </div>
+      );
+    }
+
+    function LoginView({ onLogin, todayReports, allMembers }) {
+      const [name, setName] = useState('');
+      const pendingMembers = useMemo(() => {
+        const todayDoneNames = todayReports.map(r => r.userName);
+        return allMembers.filter(m => !todayDoneNames.includes(m.name));
+      }, [allMembers, todayReports]);
+
+      return (
+        <div className="flex flex-col items-center space-y-8 animate-in fade-in duration-700">
+          <div className="relative pt-4 text-center">
+            <img 
+              src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=400&fit=crop" 
+              alt="login-image"
+              className="w-40 h-40 rounded-[40px] border-4 border-white shadow-2xl object-cover rotate-3 mx-auto" 
+            />
+            <div className="mt-4">
+              <h2 className="text-2xl font-black text-gray-800 tracking-tight">運動時間到囉！🌸</h2>
+              <p className="text-gray-400 text-sm">輸入名字或點擊下方快捷鍵進入</p>
+            </div>
+          </div>
+          <div className="w-full space-y-4">
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-300" size={20} />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onLogin(name)} placeholder="妳的名字" className="w-full pl-12 pr-4 py-4 rounded-3xl border-2 border-pink-100 focus:border-pink-300 outline-none shadow-sm text-lg transition-all bg-white" />
+            </div>
+            <button onClick={() => onLogin(name)} className="w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white py-4 rounded-3xl font-black text-lg shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2">
+              進入系統 <ArrowRight size={20} />
+            </button>
+          </div>
+          <div className="w-full space-y-6 pt-4 border-t border-pink-100">
+            <div className="space-y-3">
+              <h3 className="font-black text-green-600 flex items-center gap-2 px-2 text-xs uppercase tracking-wider"><CheckCircle2 size={16}/> 今日已達成 ({todayReports.length})</h3>
+              <div className="flex flex-wrap gap-2 px-1">
+                {todayReports.map((report, idx) => (
+                  <button key={idx} onClick={() => onLogin(report.userName)} className="bg-white text-green-600 px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm border border-green-50 flex items-center gap-1.5 transition-all">
+                    <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center text-[8px]">{report.userName?.[0]}</div>{report.userName}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h3 className="font-black text-pink-400 flex items-center gap-2 px-2 text-xs uppercase tracking-wider"><Clock size={16}/> 等妳來打卡 ({pendingMembers.length})</h3>
+              <div className="flex flex-wrap gap-2 px-1">
+                {pendingMembers.map((member, idx) => (
+                  <button key={idx} onClick={() => onLogin(member.name)} className="bg-white text-gray-500 px-3 py-1.5 rounded-xl font-medium text-xs border border-pink-50 flex items-center gap-1.5 shadow-sm transition-all active:scale-95">
+                    <div className="w-4 h-4 bg-gray-100 rounded-full flex items-center justify-center text-[8px]">{member.name?.[0]}</div>{member.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function UserDashboard({ userName, history, hasReportedToday, onSubmit, diffDays }) {
+      const totalCheckInDays = useMemo(() => new Set(history.map(r => r.date)).size, [history]);
+
+      return (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-white rounded-[32px] p-6 shadow-xl border border-pink-50 relative overflow-hidden">
+            <div className="absolute top-[-20px] left-[-20px] w-24 h-24 bg-pink-50 rounded-full opacity-50" />
+            <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+              <div className="relative">
+                <div className="w-16 h-16 bg-pink-100 rounded-2xl flex items-center justify-center text-pink-500 shadow-inner"><User size={32} /></div>
+                {totalCheckInDays >= 10 && <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-white p-1 rounded-full shadow-md"><Trophy size={10} fill="white" /></div>}
+              </div>
+              <div className="space-y-2">
+                <div className="flex flex-col items-center gap-1">
+                  <h2 className="text-xl font-black text-gray-800">{userName} 小仙女 🍓</h2>
+                  <AchievementBadge count={totalCheckInDays} />
+                </div>
+                <div className="pt-2 flex flex-col items-center">
+                  <p className="text-gray-400 text-sm">累積打卡：<span className="text-pink-500 font-bold">{totalCheckInDays}</span> 天</p>
+                  <div className="mt-3 px-4 py-1.5 bg-rose-50 rounded-full border border-rose-100 flex items-center gap-2 shadow-sm animate-pulse">
+                    <Flag size={14} className="text-rose-400" />
+                    <p className="text-xs text-rose-500 font-black tracking-wide">距離 5/17 目標還有 <span className="text-lg">{diffDays}</span> 天 ✨</p>
+                  </div>
+                </div>
+              </div>
+              {hasReportedToday ? (
+                <div className="bg-green-50 text-green-600 px-6 py-3 rounded-2xl border border-green-100 font-bold flex items-center gap-2 animate-in bounce-in">
+                  <CheckCircle2 size={20} /> 今日已達成！
+                </div>
+              ) : (
+                <button onClick={onSubmit} className="w-full bg-pink-400 text-white py-4 rounded-2xl font-black shadow-lg hover:bg-pink-500 transition-all">
+                  一鍵報備：我運動完了！✨
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h3 className="font-black text-gray-800 flex items-center gap-2 px-2"><History size={20} className="text-pink-400" /> 我的努力紀錄 ({history.length})</h3>
+            <div className="space-y-3">
+              {history.length === 0 ? (
+                <div className="bg-white p-10 rounded-3xl border border-dashed border-pink-200 text-center text-gray-400 italic">還沒有紀錄喔，開始第一步吧！</div>
+              ) : (
+                history.map((record, idx) => (
+                  <div key={idx} className="bg-white p-4 rounded-2xl border border-pink-50 shadow-sm flex justify-between items-center group transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-pink-50 p-2 rounded-xl text-pink-400"><Calendar size={18} /></div>
+                      <div>
+                        <div className="font-bold text-gray-800">{record.date}</div>
+                        <div className="text-xs text-green-500 font-bold">{record.userId === 'admin-manual' ? '管理員補打卡' : '已完成回報'}</div>
+                      </div>
+                    </div>
+                    <div className="text-pink-300"><Heart size={16} fill="currentColor" /></div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function AdminDashboard({ reports, members, onAddMember, onDeleteMember, onDeleteReport, onManualReport }) {
+      const [activeTab, setActiveTab] = useState('records'); 
+      const [newMemberName, setNewMemberName] = useState('');
+      const [editingMember, setEditingMember] = useState(null); 
+      const [expandedDates, setExpandedDates] = useState({});
+      const [manualName, setManualName] = useState('');
+      const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
+      const [reportToDelete, setReportToDelete] = useState(null);
+      const [memberToDelete, setMemberToDelete] = useState(null);
+
+      const reportsGroupedByDate = useMemo(() => {
+        const groups = {};
+        reports.forEach(report => {
+          if (!groups[report.date]) groups[report.date] = [];
+          groups[report.date].push(report);
+        });
+        
+        const groupedArray = Object.keys(groups).map(date => {
+          const count = groups[date].length;
+          const percent = members.length > 0 ? Math.round((count / members.length) * 100) : 0;
+          return { date, records: groups[date], count, percent };
+        });
+        
+        return groupedArray.sort((a, b) => new Date(b.date) - new Date(a.date));
+      }, [reports, members.length]);
+
+      useEffect(() => {
+        if (reportsGroupedByDate.length > 0 && Object.keys(expandedDates).length === 0) {
+          setExpandedDates({ [reportsGroupedByDate[0].date]: true });
+        }
+      }, [reportsGroupedByDate]);
+
+      return (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="flex bg-white p-1 rounded-2xl border border-pink-100 shadow-sm">
+            <button onClick={() => setActiveTab('records')} className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'records' ? 'bg-pink-400 text-white shadow-md' : 'text-gray-400'}`}>回報紀錄</button>
+            <button onClick={() => setActiveTab('members')} className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'members' ? 'bg-pink-400 text-white shadow-md' : 'text-gray-400'}`}>成員管理</button>
+          </div>
+
+          {activeTab === 'records' ? (
+            <div className="space-y-4">
+              <div className="bg-white p-5 rounded-[32px] shadow-sm border border-pink-100 space-y-4">
+                <h3 className="text-sm font-black text-pink-600 flex items-center gap-2"><CalendarCheck size={18} /> 幫姊妹補打卡</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <select value={manualName} onChange={(e) => setManualName(e.target.value)} className="w-full bg-pink-50/50 p-3 rounded-2xl outline-none text-sm border border-transparent focus:border-pink-200">
+                    <option value="">選擇姊妹...</option>
+                    {members.map(m => (<option key={m.id} value={m.name}>{m.name}</option>))}
+                  </select>
+                  <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="w-full bg-pink-50/50 p-3 rounded-2xl outline-none text-sm border border-transparent focus:border-pink-200" />
+                  <button onClick={() => { if (manualName) { onManualReport(manualName, manualDate); setManualName(''); } }} disabled={!manualName} className={`w-full py-3 rounded-2xl font-black text-sm shadow-sm transition-all ${manualName ? 'bg-pink-400 text-white hover:bg-pink-500' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>確認補打卡</button>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {reportsGroupedByDate.map((group, groupIdx) => (
+                  <div key={groupIdx} className="bg-white rounded-[32px] shadow-sm border border-pink-100 overflow-hidden">
+                    <div onClick={() => setExpandedDates(prev => ({...prev, [group.date]: !prev[group.date]}))} className="bg-pink-50 p-4 border-b border-pink-100 flex justify-between items-center cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} className="text-pink-400" />
+                        <span className="font-black text-pink-600">{group.date}</span>
+                        {expandedDates[group.date] ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}
+                      </div>
+                      <span className="text-[10px] font-bold bg-white px-3 py-1 rounded-full text-pink-500">{group.count} 人 ({group.percent}%)</span>
+                    </div>
+                    {expandedDates[group.date] && (
+                      <div className="p-2 space-y-1">
+                        {group.records.map((record, rIdx) => (
+                          <div key={rIdx} className="flex items-center justify-between p-3 hover:bg-pink-50/30 rounded-2xl transition-colors group">
+                            <span className="font-bold text-gray-700">{record.userName}</span>
+                            <div className="flex items-center gap-2">
+                              {reportToDelete === record.id ? (
+                                <div className="flex gap-1 animate-in slide-in-from-right-2">
+                                  <button onClick={() => { onDeleteReport(record.id); setReportToDelete(null); }} className="text-[10px] bg-rose-500 text-white px-2 py-1 rounded-lg">確定</button>
+                                  <button onClick={() => setReportToDelete(null)} className="text-[10px] bg-gray-200 px-2 py-1 rounded-lg">取消</button>
+                                </div>
+                              ) : (
+                                <>
+                                  <CheckCircle2 size={14} className="text-green-500" />
+                                  <button onClick={() => setReportToDelete(record.id)} className="p-1.5 text-gray-300 hover:text-rose-400 opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-white p-4 rounded-3xl border border-pink-100 shadow-sm flex gap-2">
+                <input type="text" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} placeholder="新增姊妹名字..." className="flex-1 bg-pink-50/50 px-4 py-2 rounded-xl outline-none text-sm" />
+                <button onClick={() => { onAddMember(newMemberName); setNewMemberName(''); }} className="bg-pink-400 text-white p-2 rounded-xl"><Plus size={20} /></button>
+              </div>
+              <div className="bg-white rounded-[32px] border border-pink-100 divide-y divide-pink-50 overflow-hidden">
+                {members.map((member) => (
+                  <div key={member.id} className="p-4 flex justify-between items-center group">
+                    {editingMember?.id === member.id ? (
+                      <div className="flex-1 flex gap-2">
+                        <input type="text" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} className="flex-1 bg-white border border-pink-200 px-3 py-1 rounded-lg text-sm" />
+                        <button onClick={() => { onDeleteMember(member.id); onAddMember(editingMember.name); setEditingMember(null); }} className="text-green-500"><Save size={18} /></button>
+                        <button onClick={() => setEditingMember(null)} className="text-gray-400"><X size={18} /></button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="font-bold text-gray-700">{member.name}</span>
+                        <div className="flex gap-2 items-center">
+                          {memberToDelete === member.id ? (
+                            <div className="flex gap-1 animate-in slide-in-from-right-2">
+                              <button onClick={() => { onDeleteMember(member.id); setMemberToDelete(null); }} className="text-[10px] bg-rose-500 text-white px-2 py-1 rounded-lg font-bold">確定刪除</button>
+                              <button onClick={() => setMemberToDelete(null)} className="text-[10px] bg-gray-200 text-gray-500 px-2 py-1 rounded-lg font-bold">取消</button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => { setActiveTab('records'); setManualName(member.name); }} title="幫她補打卡" className="p-1.5 text-pink-400 hover:bg-pink-50 rounded-lg"><CalendarCheck size={16} /></button>
+                              <button onClick={() => setEditingMember({ id: member.id, name: member.name })} title="編輯名字" className="p-1.5 text-blue-400 hover:bg-blue-50 rounded-lg"><Edit2 size={16} /></button>
+                              <button onClick={() => setMemberToDelete(member.id)} title="踢出成員" className="p-1.5 text-rose-400 hover:bg-rose-50 rounded-lg"><Trash2 size={16} /></button>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
