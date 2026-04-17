@@ -22,7 +22,7 @@
     import {Heart,Dumbbell,Calendar,LogOut,CheckCircle2,Trophy,Sparkles,User,ArrowRight,History,Clock,Plus,Trash2,Edit2,X,Save,Flag,Zap,CalendarCheck,ChevronDown,ChevronUp,Medal,Star,Crown,PartyPopper,PlayCircle,BookOpen} from 'lucide-react';
 
     const firebaseConfig={apiKey:"AIzaSyBNIFEJdJ6Ezi1HiNiCO5nRjcdKwxwTG0k",authDomain:"report-67a9c.firebaseapp.com",projectId:"report-67a9c",storageBucket:"report-67a9c.firebasestorage.app",messagingSenderId:"633143727143",appId:"1:633143727143:web:743ab5443e72cfc7966a02"};
-    const app=initializeApp(firebaseConfig);const auth=getAuth(app);const db=getFirestore(app);const appId='cute-fitness-system-v5';
+    const app=initializeApp(firebaseConfig);const auth=getAuth(app);const db=getFirestore(app);const appId='cute-fitness-system-v4';
     const ACHIEVEMENTS={10:{title:"初萌小仙芽",color:"from-green-300 to-teal-400",icon:<Sparkles className="text-white"/>},20:{title:"霓裳輕盈仙子",color:"from-purple-400 to-pink-500",icon:<Medal className="text-white"/>},30:{title:"凌波閃耀上仙",color:"from-blue-400 to-indigo-500",icon:<Star className="text-white" fill="white"/>}};
     const getAch=(d)=>{if(d>=30)return ACHIEVEMENTS[30];if(d>=20)return ACHIEVEMENTS[20];if(d>=10)return ACHIEVEMENTS[10];return null;};
 
