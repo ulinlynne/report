@@ -76,4 +76,20 @@
 
     function App() {
       const [user, setUser] = useState(null);
-      const [session
+      const [sessionUser, setSessionUser] = useState(null);
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [reports, setReports] = useState([]);
+      const [members, setMembers] = useState([]);
+      const [menus, setMenus] = useState([]); 
+      const [loading, setLoading] = useState(true);
+      const [message, setMessage] = useState(null);
+      const [showLeaderboard, setShowLeaderboard] = useState(false);
+      const [unlockedAchievement, setUnlockedAchievement] = useState(null);
+
+      useEffect(() => {
+        const initAuth = async () => {
+          try { await signInAnonymously(auth); } catch (err) { console.error(err); }
+        };
+        initAuth();
+        const unsubscribe = onAuthStateChanged(auth, (u) => {
+          setUser(u);
