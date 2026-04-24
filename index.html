@@ -4,169 +4,346 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>可愛運動回報系統</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
   <script type="importmap">
-  {"imports": {"react": "https://esm.sh/react@18.2.0", "react-dom/client": "https://esm.sh/react-dom@18.2.0/client", "lucide-react": "https://esm.sh/lucide-react@0.292.0?deps=react@18.2.0", "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js", "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js", "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"}}
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.2.0",
+      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+      "lucide-react": "https://esm.sh/lucide-react@0.292.0?deps=react@18.2.0",
+      "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+    }
+  }
   </script>
-  <style>.animate-in{animation:fadeIn 0.6s ease-out forwards}@keyframes fadeIn{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}</style>
+
+  <style>
+    .animate-in { animation: fadeIn 0.6s ease-out forwards; }
+    @keyframes fadeIn { 
+      from { opacity: 0; transform: translateY(15px); } 
+      to { opacity: 1; transform: translateY(0); } 
+    }
+  </style>
 </head>
 <body class="bg-[#FFF5F7]">
+  
   <div id="root"></div>
+
   <script type="text/babel" data-type="module">
-    import React,{useState,useEffect,useMemo} from 'react';
-    import {createRoot} from 'react-dom/client';
-    import {initializeApp} from 'firebase/app';
-    import {getAuth,signInAnonymously,onAuthStateChanged} from 'firebase/auth';
-    import {getFirestore,collection,doc,setDoc,getDoc,addDoc,deleteDoc,onSnapshot,updateDoc} from 'firebase/firestore';
-    import {Heart,Dumbbell,Calendar,LogOut,CheckCircle2,Trophy,Sparkles,User,ArrowRight,History,Clock,Plus,Trash2,Edit2,X,Save,Flag,Zap,CalendarCheck,ChevronDown,ChevronUp,Medal,Star,Crown,PartyPopper,PlayCircle,BookOpen} from 'lucide-react';
+    import React, { useState, useEffect, useMemo } from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { initializeApp } from 'firebase/app';
+    import {
+      getAuth,
+      signInAnonymously,
+      onAuthStateChanged
+    } from 'firebase/auth';
+    import {
+      getFirestore,
+      collection,
+      doc,
+      setDoc,
+      getDoc,
+      addDoc,
+      deleteDoc,
+      onSnapshot,
+      updateDoc
+    } from 'firebase/firestore';
+    import {
+      Heart, Dumbbell, Calendar, LogOut, CheckCircle2, Trophy, Sparkles, User,
+      ArrowRight, History, Clock, Plus, Trash2, Edit2, X, Save, Flag, Zap,
+      CalendarCheck, ChevronDown, ChevronUp, Medal, Star, Crown, PartyPopper,
+      PlayCircle, BookOpen, Flame, Egg, Ghost, Rabbit, Cat, Bird, Stars, Wind
+    } from 'lucide-react';
 
-    const firebaseConfig={apiKey:"AIzaSyBNIFEJdJ6Ezi1HiNiCO5nRjcdKwxwTG0k",authDomain:"report-67a9c.firebaseapp.com",projectId:"report-67a9c",storageBucket:"report-67a9c.firebasestorage.app",messagingSenderId:"633143727143",appId:"1:633143727143:web:743ab5443e72cfc7966a02"};
-    const app=initializeApp(firebaseConfig);const auth=getAuth(app);const db=getFirestore(app);const appId='cute-fitness-system-v4';
-    const ACHIEVEMENTS={10:{title:"初萌小仙芽",color:"from-green-300 to-teal-400",icon:<Sparkles className="text-white"/>},20:{title:"霓裳輕盈仙子",color:"from-purple-400 to-pink-500",icon:<Medal className="text-white"/>},30:{title:"凌波閃耀上仙",color:"from-blue-400 to-indigo-500",icon:<Star className="text-white" fill="white"/>}};
-    const getAch=(d)=>{if(d>=30)return ACHIEVEMENTS[30];if(d>=20)return ACHIEVEMENTS[20];if(d>=10)return ACHIEVEMENTS[10];return null;};
+    // --- Firebase 配置 (妳專屬的金鑰) ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBNIFEJdJ6Ezi1HiNiCO5nRjcdKwxwTG0k",
+      authDomain: "report-67a9c.firebaseapp.com",
+      projectId: "report-67a9c",
+      storageBucket: "report-67a9c.firebasestorage.app",
+      messagingSenderId: "633143727143",
+      appId: "1:633143727143:web:743ab5443e72cfc7966a02"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    
+    // 💡 關鍵：房間號碼改回 v4，找回所有舊資料！
+    const appId = 'cute-fitness-system-v4';
 
-    function App(){
-      const [user,setUser]=useState(null);const [sessionUser,setSessionUser]=useState(null);const [isAdmin,setIsAdmin]=useState(false);
-      const [reports,setReports]=useState([]);const [members,setMembers]=useState([]);const [menus,setMenus]=useState([]);
-      const [loading,setLoading]=useState(true);const [msg,setMsg]=useState(null);
-      const [showBoard,setShowBoard]=useState(false);const [unlocked,setUnlocked]=useState(null);
+    // --- 小仙女頭銜配置 ---
+    const ACHIEVEMENTS = {
+      10: { title: "初萌小仙芽", color: "from-green-300 to-teal-400", icon: <Sparkles className="text-white" /> },
+      20: { title: "霓裳輕盈仙子", color: "from-purple-400 to-pink-500", icon: <Medal className="text-white" /> },
+      30: { title: "凌波閃耀上仙", color: "from-blue-400 to-indigo-500", icon: <Star className="text-white" fill="white" /> }
+    };
 
-      useEffect(()=>{
-        signInAnonymously(auth).catch(e=>console.error(e));
-        const unsub=onAuthStateChanged(auth,(u)=>{setUser(u);setLoading(false);});
-        return ()=>unsub();
-      },[]);
+    // --- 小仙女的萌寵進化階段 ---
+    const PET_STAGES = [
+      { level: 0, minDays: 0, title: "萌萌仙靈蛋", img: "https://raw.githubusercontent.com/ulinlynne/egg/refs/heads/main/egg.png", icon: <Egg />, color: "from-yellow-100 to-orange-100", textColor: "text-orange-400", message: "主人快修煉，我要破殼了！" },
+      { level: 1, minDays: 4, title: "圓滾滾毛球", img: "https://raw.githubusercontent.com/ulinlynne/cat/refs/heads/main/cat.png", icon: <Ghost />, color: "from-pink-100 to-rose-200", textColor: "text-rose-400", message: "主人真棒！運動汗水是我的能量～" },
+      { level: 2, minDays: 8, title: "長耳跳跳兔", img: "https://raw.githubusercontent.com/ulinlynne/rabbit/refs/heads/main/rabbit.png", icon: <Rabbit />, color: "from-blue-100 to-sky-200", textColor: "text-sky-400", message: "我們一起跳向更健康的路吧！" },
+      { level: 3, minDays: 12, title: "優雅小仙貓", img: "https://raw.githubusercontent.com/ulinlynne/flycat/refs/heads/main/flycat.png", icon: <Cat />, color: "from-purple-100 to-violet-200", textColor: "text-violet-400", message: "今天的妳也很有仙氣喔喵～" },
+      { level: 4, minDays: 16, title: "幻影彩虹狐", img: "https://raw.githubusercontent.com/ulinlynne/fox/refs/heads/main/fox.png", icon: <Wind />, color: "from-pink-200 to-purple-300", textColor: "text-purple-500", message: "我能感受到妳體內蓬勃的仙氣！" },
+      { level: 5, minDays: 20, title: "幻彩精靈鳥", img: "https://raw.githubusercontent.com/ulinlynne/catbird/refs/heads/main/catbird.png", icon: <Bird />, color: "from-teal-100 to-emerald-200", textColor: "text-emerald-400", message: "快看！我因為妳的努力變漂亮了！" },
+      { level: 6, minDays: 24, title: "至尊守護獸", img: "https://raw.githubusercontent.com/ulinlynne/horse/refs/heads/main/lion.png", icon: <Stars />, color: "from-yellow-200 to-amber-300", textColor: "text-amber-500", message: "我會永遠守護主人的閃耀仙力！" }
+    ];
 
-      useEffect(()=>{
-        if(!user)return;
-        const u1=onSnapshot(collection(db,'artifacts',appId,'public','data','reports'),(s)=>setReports(s.docs.map(d=>({id:d.id,...d.data()}))));
-        const u2=onSnapshot(collection(db,'artifacts',appId,'public','data','members'),(s)=>setMembers(s.docs.map(d=>({id:d.id,...d.data()}))));
-        const u3=onSnapshot(collection(db,'artifacts',appId,'public','data','menus'),(s)=>setMenus(s.docs.map(d=>({id:d.id,...d.data()}))));
-        return ()=>{u1();u2();u3();};
-      },[user]);
+    // --- 輔助函式 ---
+    const getAchievementByDays = (days) => {
+      if (days >= 30) return ACHIEVEMENTS[30];
+      if (days >= 20) return ACHIEVEMENTS[20];
+      if (days >= 10) return ACHIEVEMENTS[10];
+      return null;
+    };
 
-      const showM=(m)=>{setMsg(m);setTimeout(()=>setMsg(null),3000);};
+    const getPetStage = (days) => {
+      return [...PET_STAGES].reverse().find(stage => days >= stage.minDays) || PET_STAGES[0];
+    };
 
-      const login=async(name)=>{
-        const n=name.trim();if(!n)return showM("名字不能空喔🌸");
+    const calculateStreak = (reportDates) => {
+      if (!reportDates || reportDates.length === 0) return 0;
+      const sortedDates = [...new Set(reportDates)].sort((a, b) => b.localeCompare(a));
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      if (sortedDates[0] !== today && sortedDates[0] !== yesterday) return 0;
+      let streak = 0, dateToFind = sortedDates[0];
+      while (sortedDates.includes(dateToFind)) {
+        streak++;
+        const d = new Date(dateToFind);
+        d.setDate(d.getDate() - 1);
+        dateToFind = d.toISOString().split('T')[0];
+      }
+      return streak;
+    };
+
+    function App() {
+      const [user, setUser] = useState(null);
+      const [sessionUser, setSessionUser] = useState(null);
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [reports, setReports] = useState([]);
+      const [members, setMembers] = useState([]);
+      const [menus, setMenus] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [message, setMessage] = useState(null);
+      const [showLeaderboard, setShowLeaderboard] = useState(false);
+      const [unlockedAchievement, setUnlockedAchievement] = useState(null);
+
+      // 初始化與監聽
+      useEffect(() => {
+        const initAuth = async () => {
+          try {
+            await signInAnonymously(auth);
+          } catch (err) { console.error(err); }
+        };
+        initAuth();
+        const unsubscribe = onAuthStateChanged(auth, (u) => { setUser(u); setLoading(false); });
+        return () => unsubscribe();
+      }, []);
+
+      useEffect(() => {
+        if (!user) return;
+        const unsubReports = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), (s) => setReports(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+        const unsubMembers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'members'), (s) => setMembers(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+        const unsubMenus = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'menus'), (s) => setMenus(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+        return () => { unsubReports(); unsubMembers(); unsubMenus(); };
+      }, [user]);
+
+      const showMessage = (msg) => { setMessage(msg); setTimeout(() => setMessage(null), 3000); };
+
+      const handleLogin = async (name) => {
+        const trimmedName = name.trim();
+        if (!trimmedName) return showMessage("小仙女要輸入名字喔 🌸");
         setLoading(true);
-        if(n.toLowerCase()==='admin'){setIsAdmin(true);setSessionUser('管理員');}
-        else{
-          try{
-            const r=doc(db,'artifacts',appId,'public','data','members',n);
-            const s=await getDoc(r);
-            if(!s.exists())await setDoc(r,{name:n,createdAt:new Date().toISOString()});
-            setIsAdmin(false);setSessionUser(n);
-          }catch(e){}
+        if (trimmedName.toLowerCase() === 'admin') {
+          setIsAdmin(true); setSessionUser('管理員');
+        } else {
+          try {
+            const memberRef = doc(db, 'artifacts', appId, 'public', 'data', 'members', trimmedName);
+            const memberSnap = await getDoc(memberRef);
+            if (!memberSnap.exists()) await setDoc(memberRef, { name: trimmedName, createdAt: new Date().toISOString() });
+            setIsAdmin(false); setSessionUser(trimmedName);
+          } catch (err) { console.error(err); }
         }
-        setLoading(false);showM(`歡迎回來，${n} ✨`);
+        setLoading(false);
+        showMessage(`歡迎回到修煉仙境，${trimmedName} ✨`);
       };
 
-      const logout=()=>{setSessionUser(null);setIsAdmin(false);showM("明天也要加油喔！🌸");};
+      const handleLogout = () => { setSessionUser(null); setIsAdmin(false); showMessage("休息一下，明天見囉！🌸"); };
 
-      const submitR=async()=>{
-        if(!user||!sessionUser)return;
-        const t=new Date().toISOString().split('T')[0];
-        if(reports.some(r=>r.userName===sessionUser&&r.date===t))return showM("今天打過卡囉！🌸");
-        try{
-          const c=new Set(reports.filter(r=>r.userName===sessionUser).map(r=>r.date)).size;
-          await addDoc(collection(db,'artifacts',appId,'public','data','reports'),{userName:sessionUser,userId:user.uid,date:t,timestamp:new Date().toISOString()});
-          showM("打卡成功！🎊");
-          if(ACHIEVEMENTS[c+1])setUnlocked({day:c+1,...ACHIEVEMENTS[c+1]});
-        }catch(e){showM("打卡失敗🌸");}
+      const submitReport = async () => {
+        if (!user || !sessionUser) return;
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (reports.some(r => r.userName === sessionUser && r.date === todayStr)) return showMessage("小仙女今天已經達成目標囉！🌸");
+        try {
+          const currentDays = new Set(reports.filter(r => r.userName === sessionUser).map(r => r.date)).size;
+          await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), { userName: sessionUser, userId: user.uid, date: todayStr, timestamp: new Date().toISOString() });
+          showMessage("今日修煉成功！妳真的太棒了 🎊");
+          const newTotal = currentDays + 1;
+          if (ACHIEVEMENTS[newTotal]) setUnlockedAchievement({ day: newTotal, ...ACHIEVEMENTS[newTotal] });
+        } catch (err) { showMessage("打卡失敗，請再試一次 🌸"); }
       };
 
-      // Admin funcs
-      const addM=async(n)=>{n=n.trim();if(n)try{await setDoc(doc(db,'artifacts',appId,'public','data','members',n),{name:n});showM("新增成功");}catch(e){showM("失敗");}};
-      const delM=async(id)=>{setLoading(true);try{
-        const ur=reports.filter(r=>r.userName===id);
-        for(const r of ur)await deleteDoc(doc(db,'artifacts',appId,'public','data','reports',r.id));
-        await deleteDoc(doc(db,'artifacts',appId,'public','data','members',id));
-        showM("已刪除");}catch(e){showM("失敗");}setLoading(false);};
-      const updM=async(oid,nn)=>{nn=nn.trim();if(!nn||oid===nn)return;setLoading(true);try{
-        const or=reports.filter(r=>r.userName===oid);
-        for(const r of or)await updateDoc(doc(db,'artifacts',appId,'public','data','reports',r.id),{userName:nn});
-        await setDoc(doc(db,'artifacts',appId,'public','data','members',nn),{name:nn});
-        await deleteDoc(doc(db,'artifacts',appId,'public','data','members',oid));
-        showM("更新成功");}catch(e){showM("失敗");}setLoading(false);};
-      const delR=async(id)=>{try{await deleteDoc(doc(db,'artifacts',appId,'public','data','reports',id));showM("已刪除");}catch(e){showM("失敗");}};
-      const manR=async(n,d)=>{if(n&&d)try{await addDoc(collection(db,'artifacts',appId,'public','data','reports'),{userName:n,userId:"admin",date:d,timestamp:new Date().toISOString()});showM("補打卡成功");}catch(e){showM("失敗");}};
-      const saveMnu=async(d,c,v)=>{if(d&&c.trim())try{await setDoc(doc(db,'artifacts',appId,'public','data','menus',d),{content:c.trim(),videoUrl:v.trim()});showM("菜單已發布");}catch(e){showM("失敗");}};
-      const delMnu=async(d)=>{try{await deleteDoc(doc(db,'artifacts',appId,'public','data','menus',d));showM("菜單已刪除");}catch(e){showM("失敗");}};
+      // --- 管理員操作 ---
+      const adminAddMember = (n) => n && setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', n.trim()), { name: n.trim(), createdAt: new Date().toISOString() }).then(() => showMessage(`已新增小仙女：${n} 🌸`));
+      const adminDeleteMember = async (id) => {
+        setLoading(true);
+        const userReports = reports.filter(r => r.userName === id);
+        for (const r of userReports) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', r.id));
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id));
+        setLoading(false); showMessage("已移除成員與所有修煉紀錄 🌸");
+      };
+      const adminUpdateMember = async (oldId, n) => {
+        if (!n || oldId === n) return;
+        setLoading(true);
+        const oldReports = reports.filter(r => r.userName === oldId);
+        for (const r of oldReports) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', r.id), { userName: n });
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', n), { name: n, createdAt: new Date().toISOString() });
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', oldId));
+        setLoading(false); showMessage("改名與紀錄同步完成 ✨");
+      };
+      const adminDeleteReport = (id) => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', id)).then(() => showMessage("紀錄已刪除 🌸"));
+      const adminManualReport = (n, d) => addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reports'), { userName: n, userId: "admin-manual", date: d, timestamp: new Date().toISOString() }).then(() => showMessage(`已幫 ${n} 補登修煉 🌸`));
+      const adminSaveMenu = (d, c, v) => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'menus', d), { content: c, videoUrl: v, updatedAt: new Date().toISOString() }).then(() => showMessage("修煉菜單儲存成功 🌸"));
+      const adminDeleteMenu = (d) => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'menus', d)).then(() => showMessage("菜單已移除 🌸"));
 
-      const today=new Date().toISOString().split('T')[0];
-      const todayR=useMemo(()=>reports.filter(r=>r.date===today),[reports,today]);
-      const todayMnu=useMemo(()=>menus.find(m=>m.id===today),[menus,today]);
-      
-      const stats=useMemo(()=>{
-        const t=members.length;const d=todayR.length;
-        const pct=t>0?Math.round((d/t)*100):0;
-        const nw=new Date();let tgt=new Date(nw.getFullYear(),4,17);
-        if(nw>tgt)tgt.setFullYear(nw.getFullYear()+1);
-        const df=Math.ceil((tgt-nw)/(1000*60*60*24));
-        return {pct,df,t,d};
-      },[members,todayR]);
+      const todayStr_val = new Date().toISOString().split('T')[0];
+      const todayReportsList = useMemo(() => reports.filter(r => r.date === todayStr_val), [reports, todayStr_val]);
+      const todayMenu = useMemo(() => menus.find(m => m.id === todayStr_val), [menus, todayStr_val]);
+      const stats = useMemo(() => {
+        const total = members.length;
+        const done = todayReportsList.length;
+        const target = new Date(new Date().getFullYear(), 4, 17);
+        if (new Date() > target) target.setFullYear(target.getFullYear() + 1);
+        const diff = Math.ceil((target - new Date()) / (1000 * 60 * 60 * 24));
+        return { percent: total > 0 ? Math.round((done / total) * 100) : 0, diff, total, done };
+      }, [members, todayReportsList]);
 
-      const rank=useMemo(()=>{
-        const c={};reports.forEach(r=>{if(!c[r.userName])c[r.userName]=new Set();c[r.userName].add(r.date);});
-        return Object.entries(c).map(([name,s])=>({name,count:s.size})).sort((a,b)=>b.count-a.count);
-      },[reports]);
+      const rankingList = useMemo(() => {
+        const data = {};
+        reports.forEach(r => { if (!data[r.userName]) data[r.userName] = []; data[r.userName].push(r.date); });
+        return Object.entries(data).map(([name, dates]) => ({ name, count: new Set(dates).size, streak: calculateStreak(dates) })).sort((a, b) => b.count - a.count);
+      }, [reports]);
 
-      if(loading)return <div className="min-h-screen bg-[#FFF5F7] flex items-center justify-center text-pink-400"><div className="animate-bounce flex flex-col items-center gap-4"><Heart size={48} fill="currentColor" /><span className="font-black text-pink-300">系統處理中...</span></div></div>;
+      if (loading) return (
+        <div className="min-h-screen bg-[#FFF5F7] flex items-center justify-center text-pink-400">
+          <div className="animate-bounce flex flex-col items-center gap-4">
+            <Heart size={48} fill="currentColor" />
+            <span className="font-black text-pink-300 text-sm">修煉仙境載入中...</span>
+          </div>
+        </div>
+      );
 
       return (
-        <div className="min-h-screen bg-[#FFF5F7] text-gray-700 font-sans pb-20">
-          <header className="bg-white/90 backdrop-blur-md border-b border-pink-100 p-4 sticky top-0 z-50">
-            <div className="max-w-md mx-auto flex justify-between items-center">
-              <div className="flex items-center gap-2"><div className="bg-pink-100 p-2 rounded-2xl text-pink-500"><Dumbbell size={22}/></div><h1 className="text-xl font-black text-pink-600">體能小仙女</h1></div>
-              <div className="flex items-center gap-2">
-                <button onClick={()=>setShowBoard(true)} className="bg-yellow-100 p-2.5 rounded-full text-yellow-600 hover:scale-105 transition-transform"><Trophy size={20}/></button>
-                {sessionUser && <button onClick={logout} className="flex items-center gap-1 text-gray-400 text-xs font-black bg-gray-50 px-3 py-2 rounded-full hover:bg-rose-50 hover:text-rose-400"><LogOut size={14}/> 登出</button>}
-              </div>
+        <div className="min-h-screen bg-[#FFF5F7] text-gray-700 font-sans pb-20 selection:bg-pink-100">
+          <header className="bg-white/90 backdrop-blur-md border-b border-pink-100 p-4 sticky top-0 z-50 shadow-sm flex justify-between items-center max-w-md mx-auto w-full">
+            <div className="flex items-center gap-2">
+              <div className="bg-pink-100 p-2 rounded-2xl text-pink-500 shadow-inner"><Dumbbell size={22} /></div>
+              <h1 className="text-xl font-black text-pink-600 tracking-tighter">體能小仙女</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowLeaderboard(true)} className="bg-yellow-100 p-2.5 rounded-full text-yellow-600 shadow-sm hover:scale-105 transition-transform"><Trophy size={20} /></button>
+              {sessionUser && <button onClick={handleLogout} className="text-gray-400 text-xs font-black bg-gray-50 px-3 py-2 rounded-full hover:bg-rose-50 hover:text-rose-400 transition-colors"><LogOut size={14} /></button>}
             </div>
           </header>
 
           <main className="max-w-md mx-auto p-4 space-y-6">
-            {msg && <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-white/95 border-2 border-pink-200 px-6 py-3 rounded-full shadow-2xl z-[60] animate-in fade-in"><span className="text-pink-500 font-black">{msg}</span></div>}
+            {message && (
+              <div className="fixed top-24 left-1/2 -translate-x-1/2 bg-white/95 border-2 border-pink-200 px-6 py-3 rounded-full shadow-2xl z-[60] animate-in fade-in slide-in-from-top-4">
+                <span className="text-pink-500 font-black text-sm">{message}</span>
+              </div>
+            )}
 
             <div className="bg-white p-5 rounded-[32px] shadow-sm border border-pink-50 space-y-4">
-              <div className="flex justify-between items-center"><div className="flex items-center gap-2"><div className="bg-yellow-100 p-1.5 rounded-lg text-yellow-500"><Zap size={16} fill="currentColor"/></div><span className="text-xs font-black text-gray-600">今日達成</span></div><span className="text-sm font-black text-pink-500">{stats.pct}%</span></div>
-              <div className="h-4 bg-gray-50 rounded-full overflow-hidden border border-gray-100"><div className="h-full bg-gradient-to-r from-pink-300 via-rose-400 to-pink-500 transition-all duration-1000" style={{width:stats.pct+'%'}}/></div>
-              <div className="flex justify-between text-[10px] text-gray-400 font-black tracking-widest uppercase"><span>打卡:{stats.d}/{stats.t}</span><span className="text-pink-300">每一分努力都值得🌸</span></div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="bg-yellow-100 p-1.5 rounded-lg text-yellow-500 animate-pulse"><Zap size={16} fill="currentColor" /></div>
+                  <span className="text-xs font-black text-gray-600">小仙女今日達成率</span>
+                </div>
+                <span className="text-sm font-black text-pink-500">{stats.percent}%</span>
+              </div>
+              <div className="h-4 bg-gray-50 rounded-full overflow-hidden border border-gray-100 shadow-inner">
+                <div className="h-full bg-gradient-to-r from-pink-300 via-rose-400 to-pink-500 transition-all duration-1000" style={{ width: `${stats.percent}%` }} />
+              </div>
+              <div className="flex justify-between items-center text-[10px] text-gray-400 font-black tracking-widest uppercase">
+                <span>修煉中: {stats.done} / {stats.total}</span>
+                <span className="text-pink-400 font-bold">{stats.percent === 100 ? "姊妹們修煉大圓滿！🌸" : "加油，離圓滿不遠了 ✨"}</span>
+              </div>
             </div>
 
-            {!sessionUser?<LoginV onLogin={login} todayR={todayR} members={members} df={stats.df}/>:isAdmin?<AdminV reports={reports} members={members} menus={menus} onAdd={addM} onDel={delM} onUpd={updM} onDelR={delR} onMan={manR} onSave={saveMnu} onDelMnu={delMnu}/>:<UserV name={sessionUser} history={reports.filter(r=>r.userName===sessionUser).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp))} done={todayR.some(r=>r.userName===sessionUser)} onSub={submitR} df={stats.df} menu={todayMnu}/>}
+            {!sessionUser ? (
+              <LoginView onLogin={handleLogin} todayReports={todayReportsList} allMembers={members} diffDays={stats.diff} />
+            ) : isAdmin ? (
+              <AdminDashboard reports={reports} members={members} menus={menus} onAddMember={adminAddMember} onDeleteMember={adminDeleteMember} onUpdateMember={adminUpdateMember} onDeleteReport={adminDeleteReport} onManualReport={adminManualReport} onSaveMenu={adminSaveMenu} onDeleteMenu={adminDeleteMenu} />
+            ) : (
+              <UserDashboard userName={sessionUser} history={reports.filter(r => r.userName === sessionUser).sort((a,b) => b.date.localeCompare(a.date))} hasReportedToday={todayReportsList.some(r => r.userName === sessionUser)} onSubmit={submitReport} diffDays={stats.diff} todayMenu={todayMenu} />
+            )}
           </main>
 
-          {showBoard && (
+          {showLeaderboard && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in">
-              <div className="bg-white w-full max-w-sm rounded-[40px] shadow-2xl overflow-hidden">
-                <div className="bg-gradient-to-br from-yellow-400 via-orange-400 to-rose-400 p-8 text-white text-center relative">
-                  <button onClick={()=>setShowBoard(false)} className="absolute top-6 right-6 bg-white/20 p-2 rounded-full"><X size={20}/></button>
-                  <Trophy size={56} className="mx-auto mb-3" fill="currentColor"/><h2 className="text-3xl font-black">勤奮仙女榜</h2><p className="text-xs opacity-90 font-bold">汗水都在閃耀✨</p>
+              <div className="bg-white w-full max-w-sm rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95">
+                <div className="bg-gradient-to-br from-yellow-400 via-orange-400 to-rose-400 p-8 text-white text-center relative shadow-lg">
+                  <button onClick={() => setShowLeaderboard(false)} className="absolute top-6 right-6 bg-white/20 p-2 rounded-full hover:bg-white/40"><X size={20} /></button>
+                  <Trophy size={56} className="mx-auto mb-3 drop-shadow-xl" fill="currentColor" />
+                  <h2 className="text-3xl font-black tracking-tighter">小仙女修煉勤奮榜</h2>
+                  <p className="text-xs opacity-90 font-bold mt-1 text-white/90">汗水是小仙女最美的妝容 ✨</p>
                 </div>
                 <div className="max-h-[50vh] overflow-y-auto p-6 space-y-3">
-                  {rank.length===0?<div className="text-center text-gray-400 py-4 text-sm">還沒人上榜喔！</div>:
-                    rank.map((item,idx)=>{
-                      const ach=getAch(item.count);
-                      return <div key={idx} className="flex justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                        <div className="flex items-center gap-4"><div className="w-8 flex justify-center text-lg font-black italic">{idx===0?<Crown className="text-yellow-500"/>:idx===1?<Medal className="text-gray-400"/>:idx===2?<Medal className="text-orange-500"/>:idx+1}</div>
-                        <div className="flex flex-col"><span className="font-black text-gray-700 text-lg">{item.name}</span>{ach&&<div className={`mt-0.5 text-[9px] font-black px-1.5 py-0.5 rounded bg-gradient-to-r ${ach.color} text-white w-fit`}>{ach.title}</div>}</div></div>
-                        <div className="text-right"><div className="text-2xl font-black text-yellow-600 leading-none">{item.count}</div><div className="text-[10px] text-gray-400 font-black mt-1 uppercase">Days</div></div>
+                  {rankingList.map((item, idx) => {
+                    const achievement = getAchievementByDays(item.count);
+                    const pet = getPetStage(item.count);
+                    return (
+                      <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-all hover:bg-white hover:shadow-md">
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 flex justify-center text-lg font-black italic">
+                            {idx === 0 ? <Crown className="text-yellow-500" /> : idx + 1}
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className={pet.textColor}>{React.cloneElement(pet.icon, { size: 16 })}</span>
+                              <span className="font-black text-gray-700 text-lg leading-tight">{item.name}</span>
+                              {item.streak >= 2 && (
+                                <div className={`flex items-center gap-0.5 text-xs font-black ${item.streak >= 7 ? 'text-orange-500 animate-pulse' : 'text-orange-400'}`}>
+                                  <Flame size={14} fill="currentColor" />
+                                  <span>{item.streak}</span>
+                                </div>
+                              )}
+                            </div>
+                            {achievement && <div className={`mt-0.5 text-[8px] font-black px-1.5 py-0.5 rounded bg-gradient-to-r ${achievement.color} text-white inline-block w-fit`}>{achievement.title}</div>}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-black text-pink-500 leading-none">{item.count}</div>
+                          <div className="text-[10px] text-gray-400 font-black mt-1 uppercase">Days</div>
+                        </div>
                       </div>
+                    );
                   })}
                 </div>
-                <div className="p-6 bg-gray-50"><button onClick={()=>setShowBoard(false)} className="w-full bg-white text-gray-500 py-4 rounded-3xl font-black text-sm shadow-sm border border-gray-200 active:scale-95">返回系統</button></div>
+                <div className="p-6 bg-gray-50"><button onClick={() => setShowLeaderboard(false)} className="w-full bg-white text-gray-500 py-4 rounded-3xl font-black text-sm shadow-sm border border-gray-200">返回主分頁</button></div>
               </div>
             </div>
           )}
-          {unlocked && (
+
+          {unlockedAchievement && (
             <div className="fixed inset-0 bg-pink-500/90 backdrop-blur-xl z-[200] flex items-center justify-center p-8 animate-in fade-in">
-              <div className="bg-white rounded-[48px] w-full max-w-sm p-10 text-center space-y-6 shadow-2xl">
-                <div className={`w-28 h-28 rounded-[40px] bg-gradient-to-br ${unlocked.color} flex items-center justify-center shadow-2xl rotate-12 scale-110 mb-6 mx-auto`}>{React.cloneElement(unlocked.icon,{size:56})}</div>
-                <div className="space-y-3"><h3 className="text-gray-400 text-sm font-black uppercase tracking-widest">Level Up!</h3><h2 className="text-4xl font-black text-gray-800 tracking-tighter">{unlocked.title}</h2><p className="text-pink-500 font-bold text-lg">打卡 <span className="text-3xl">{unlocked.day}</span> 天 ✨</p></div>
-                <button onClick={()=>setUnlocked(null)} className={`w-full bg-gradient-to-r ${unlocked.color} text-white py-5 rounded-[24px] font-black text-xl shadow-lg active:scale-95`}>收下榮耀💖</button>
+              <div className="bg-white rounded-[48px] w-full max-w-sm p-10 text-center space-y-6 shadow-2xl animate-in zoom-in-50 duration-500">
+                <div className={`w-28 h-28 rounded-[40px] bg-gradient-to-br ${unlockedAchievement.color} flex items-center justify-center shadow-2xl rotate-12 scale-110 mb-6 mx-auto`}>
+                  {React.cloneElement(unlockedAchievement.icon, { size: 56 })}
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-gray-400 text-sm font-black tracking-widest uppercase">妳變強大了！</h3>
+                  <h2 className="text-4xl font-black text-gray-800 tracking-tighter">{unlockedAchievement.title}</h2>
+                  <p className="text-pink-500 font-bold text-lg">妳的修煉已累積至 <span className="text-3xl">{unlockedAchievement.day}</span> 天 ✨</p>
+                </div>
+                <p className="text-gray-400 text-xs italic px-4 leading-relaxed">小仙女的修煉之路從不孤單，<br/>妳的萌寵會見證妳的每一次閃耀！</p>
+                <button onClick={() => setUnlockedAchievement(null)} className={`w-full bg-gradient-to-r ${unlockedAchievement.color} text-white py-5 rounded-[24px] font-black text-xl shadow-lg hover:brightness-105 active:scale-95 transition-all`}>收下稱號</button>
               </div>
             </div>
           )}
@@ -174,47 +351,261 @@
       );
     }
 
-    function LoginV({onLogin,todayR,members,df}){
-      const [n,setN]=useState('');
-      const done=todayR.map(r=>r.userName);const pend=members.filter(m=>!done.includes(m.name));
-      return <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6">
-        <div className="text-center space-y-4"><img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400&h=400&fit=crop" className="w-40 h-40 rounded-[40px] border-4 border-white shadow-2xl object-cover rotate-3 mx-auto" alt="logo"/><div className="space-y-1"><h2 className="text-3xl font-black text-gray-800 tracking-tighter">運動時間到囉！🌸</h2><p className="text-gray-400 text-sm font-bold">開啟閃耀運動計畫✨</p></div></div>
-        <div className="space-y-4"><div className="relative"><User className="absolute left-5 top-1/2 -translate-y-1/2 text-pink-300" size={22}/><input type="text" value={n} onChange={e=>setN(e.target.value)} onKeyDown={e=>e.key==='Enter'&&onLogin(n)} placeholder="輸入名字" className="w-full pl-14 pr-6 py-5 rounded-[28px] border-2 border-pink-50 focus:border-pink-300 outline-none text-lg bg-white/50 backdrop-blur-sm"/></div><button onClick={()=>onLogin(n)} className="w-full bg-gradient-to-r from-pink-400 to-pink-500 text-white py-5 rounded-[28px] font-black text-xl shadow-xl active:scale-[0.98] flex items-center justify-center gap-3">進入系統<ArrowRight size={22}/></button></div>
-        <div className="grid gap-6 pt-4"><div className="space-y-3"><h3 className="font-black text-green-500 text-xs flex items-center gap-2 px-2 uppercase tracking-widest"><CheckCircle2 size={16}/>今日達成({done.length})</h3><div className="flex flex-wrap gap-2 px-1">{done.length===0?<p className="text-[10px] text-gray-300 font-bold italic">還沒有人打卡喔🌿</p>:done.map((d,i)=><button key={i} onClick={()=>onLogin(d)} className="bg-green-50 text-green-600 px-4 py-2 rounded-2xl font-black text-xs border border-green-100 shadow-sm">{d}</button>)}</div></div>
-        <div className="space-y-3"><h3 className="font-black text-rose-300 text-xs flex items-center gap-2 px-2 uppercase tracking-widest"><Clock size={16}/>等妳來打卡({pend.length})</h3><div className="flex flex-wrap gap-2 px-1">{pend.length===0&&members.length>0?<div className="w-full p-6 bg-rose-50 rounded-[32px] border border-dashed border-rose-200 text-center"><PartyPopper className="mx-auto mb-2 text-rose-400" size={24}/><p className="text-sm text-rose-500 font-black italic">全員達成目標💖</p></div>:pend.map((p,i)=><button key={i} onClick={()=>onLogin(p.name)} className="bg-white text-gray-400 px-4 py-2 rounded-2xl font-bold text-xs border border-pink-50 shadow-sm hover:border-pink-200">{p.name}</button>)}</div></div></div>
-        <div className="bg-white p-5 rounded-[32px] shadow-sm border border-pink-50 flex items-center justify-between"><div className="flex items-center gap-4"><div className="bg-rose-100 p-3 rounded-2xl text-rose-500"><Flag size={20}/></div><div><div className="text-[10px] text-gray-400 font-black uppercase tracking-widest">距離5/17目標</div><div className="text-xl font-black text-gray-800 tracking-tighter">還有 <span className="text-rose-500 text-2xl">{df}</span> 天</div></div></div><div className="bg-pink-50 px-3 py-1.5 rounded-full text-[10px] font-black text-pink-400 animate-pulse">加油姊妹們！</div></div>
-      </div>;
+    // --- 小仙女的萌寵夥伴卡片 ---
+    function FairyPetCard({ days, streak }) {
+      const currentStage = useMemo(() => getPetStage(days), [days]);
+      const nextStage = useMemo(() => PET_STAGES.find(s => s.minDays > days), [days]);
+      const progress = useMemo(() => {
+        if (!nextStage) return 100;
+        const range = nextStage.minDays - currentStage.minDays;
+        const current = days - currentStage.minDays;
+        return Math.min(100, Math.round((current / range) * 100));
+      }, [days, currentStage, nextStage]);
+
+      return (
+        <div className="bg-white rounded-[32px] p-6 shadow-xl border border-pink-50 relative overflow-hidden group">
+          <div className="absolute top-[-10px] left-[-10px] w-24 h-24 bg-pink-50 rounded-full blur-3xl opacity-50 group-hover:scale-150 transition-transform duration-1000" />
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="relative">
+              <div className={`w-24 h-24 rounded-[32px] bg-gradient-to-br ${currentStage.color} flex items-center justify-center shadow-lg transform transition-all group-hover:scale-110 group-hover:rotate-6 p-2`}>
+                <img src={currentStage.img} className="w-full h-full object-contain drop-shadow-md animate-float" alt="仙寵" />
+              </div>
+              {streak >= 3 && <div className="absolute -top-2 -right-2 bg-orange-400 text-white p-1.5 rounded-full shadow-md animate-bounce"><Flame size={12} fill="currentColor" /></div>}
+            </div>
+            <div className="flex-1 space-y-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-black text-gray-800 tracking-tighter">仙寵夥伴：{currentStage.title}</h3>
+                  <div className="px-2 py-0.5 bg-gray-100 rounded-full text-[8px] font-black text-gray-400">Lv.{currentStage.level}</div>
+                </div>
+                <p className="text-[10px] text-pink-400 font-bold italic mt-0.5">"{currentStage.message}"</p>
+              </div>
+              <div className="space-y-1">
+                <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden border border-gray-50 shadow-inner">
+                  <div className={`h-full bg-gradient-to-r ${currentStage.color} transition-all duration-1000`} style={{ width: `${progress}%` }} />
+                </div>
+                <div className="flex justify-between text-[8px] font-black text-gray-400 tracking-tighter uppercase tracking-widest">
+                  <span>修煉同步值: {days} / {nextStage ? nextStage.minDays : days}</span>
+                  {nextStage && <span>再過 {nextStage.minDays - days} 天進化</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+          <style>{`
+            @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+            .animate-float { animation: float 3s ease-in-out infinite; }
+          `}</style>
+        </div>
+      );
     }
 
-    function UserV({name,history,done,onSub,df,menu}){
-      const total=new Set(history.map(r=>r.date)).size;const ach=getAch(total);
-      return <div className="space-y-6 animate-in slide-in-from-bottom-8">
-        {menu && <div className="bg-gradient-to-br from-pink-400 to-rose-500 rounded-[32px] p-6 shadow-xl text-white space-y-4 relative overflow-hidden"><div className="absolute top-[-10px] right-[-10px] opacity-20 rotate-12"><BookOpen size={80}/></div><div className="flex items-center gap-3 relative z-10"><div className="bg-white/20 p-2 rounded-xl"><Sparkles size={20} className="text-white"/></div><h3 className="font-black tracking-widest text-lg">今日小仙女菜單🥗</h3></div><div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20 relative z-10"><p className="whitespace-pre-wrap font-medium leading-relaxed text-sm">{menu.content}</p></div>{menu.videoUrl&&<a href={menu.videoUrl} target="_blank" rel="noreferrer" className="flex justify-center gap-2 py-3 bg-white text-rose-500 rounded-xl font-black text-sm shadow-md hover:bg-rose-50 relative z-10"><PlayCircle size={18}/> 觀看教學影片</a>}</div>}
-        <div className="bg-white rounded-[40px] p-8 shadow-xl border border-pink-50 text-center space-y-6 relative overflow-hidden"><div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-50 rounded-full blur-2xl opacity-60"/><div className="w-20 h-20 bg-pink-100 rounded-3xl flex items-center justify-center text-pink-500 mx-auto"><User size={40}/></div><div className="space-y-3"><div className="flex flex-col items-center"><h2 className="text-2xl font-black tracking-tighter">{name} 小仙女🍓</h2>{ach&&<div className={`mt-2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r ${ach.color} shadow-sm`}><span className="text-[10px] font-black text-white uppercase">{ach.title}</span></div>}</div><p className="text-sm font-bold text-gray-400">已累計打卡：<span className="text-pink-500 text-2xl">{total}</span> 天</p></div><div className="py-3 bg-rose-50 rounded-[20px] flex justify-center gap-2 animate-pulse"><Flag size={16} className="text-rose-400"/><p className="text-sm text-rose-500 font-black">距離5/17還有 <span className="text-xl">{df}</span> 天✨</p></div>{done?<div className="bg-green-50 text-green-600 py-5 rounded-[24px] font-black flex justify-center gap-3"><CheckCircle2 size={24}/> 今日已達成！</div>:<button onClick={onSub} className="w-full bg-gradient-to-br from-pink-400 to-rose-500 text-white py-6 rounded-[24px] font-black text-xl shadow-xl active:scale-95">一鍵報備：我運動完了！✨</button>}</div>
-        <div className="space-y-4"><h3 className="font-black text-gray-800 text-lg flex items-center gap-2 px-2"><History size={24} className="text-pink-400"/> 努力紀錄({history.length})</h3><div className="space-y-3">{history.length===0?<div className="p-12 text-center text-gray-300 font-bold bg-white rounded-[32px] border border-dashed border-pink-100 italic">還沒有紀錄喔！</div>:history.map((r,i)=><div key={i} className="bg-white p-5 rounded-[24px] border border-pink-50 shadow-sm flex justify-between items-center"><div className="flex gap-4"><div className="bg-pink-50 p-2.5 rounded-2xl text-pink-400"><Calendar size={20}/></div><div><div className="font-black text-gray-800 text-lg">{r.date}</div><div className="text-[10px] text-green-500 font-black uppercase tracking-widest">Completed ✨</div></div></div><Heart size={20} className="text-pink-200" fill={i===0?"#f9a8d4":"none"}/></div>)}</div></div>
-      </div>;
+    // --- 登入畫面 ---
+    function LoginView({ onLogin, todayReports, allMembers, diffDays }) {
+      const [name, setName] = useState('');
+      const doneNames = todayReports.map(r => r.userName);
+      const pending = allMembers.filter(m => !doneNames.includes(m.name));
+      return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+          <div className="text-center space-y-4">
+            <div className="w-40 h-40 bg-white rounded-[48px] shadow-2xl overflow-hidden -rotate-2 mx-auto border-8 border-white p-1">
+               <img
+                 src="https://images.unsplash.com/photo-1599447421416-3414500d18a5?q=80&w=600&auto=format&fit=crop"
+                 className="w-full h-full object-cover rounded-[36px]"
+                 alt="修煉中的仙女"
+                 onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1518310327977-47ee5c3ad290?w=400&h=400&fit=crop"; }}
+               />
+            </div>
+            <h2 className="text-3xl font-black text-gray-800 tracking-tighter">小仙女修煉仙境 🌸</h2>
+            <p className="text-gray-400 text-sm font-bold italic">開啟妳的仙氣修煉計畫 ✨</p>
+          </div>
+          <div className="space-y-4">
+            <div className="relative group">
+              <User className="absolute left-5 top-1/2 -translate-y-1/2 text-pink-300 group-focus-within:text-pink-500 transition-colors" size={22} />
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onLogin(name)} placeholder="妳的名字是？" className="w-full pl-14 pr-6 py-5 rounded-[28px] border-2 border-pink-50 focus:border-pink-300 outline-none shadow-sm text-lg bg-white/50 backdrop-blur-sm" />
+            </div>
+            <button onClick={() => onLogin(name)} className="w-full bg-gradient-to-r from-pink-400 via-rose-400 to-pink-500 text-white py-5 rounded-[28px] font-black text-xl shadow-xl hover:shadow-2xl active:scale-[0.98] transition-all">進入仙境 <ArrowRight className="inline ml-1" /></button>
+          </div>
+          <div className="grid grid-cols-1 gap-6 pt-4">
+            <div className="space-y-3">
+              <h3 className="font-black text-green-500 text-xs flex items-center gap-2 px-2 uppercase tracking-widest"><CheckCircle2 size={16}/> 今日修煉已達成 ({doneNames.length})</h3>
+              <div className="flex flex-wrap gap-2 px-1">
+                {doneNames.length === 0 ? <p className="text-[10px] text-gray-300 px-2 font-bold italic">目前還沒有人修煉喔 🌿</p> :
+                  doneNames.map((n, i) => <button key={i} onClick={() => onLogin(n)} className="bg-green-50 text-green-600 px-4 py-2 rounded-2xl font-black text-xs border border-green-100 shadow-sm animate-in zoom-in">{n}</button>)
+                }
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h3 className="font-black text-rose-300 text-xs flex items-center gap-2 px-2 uppercase tracking-widest"><Clock size={16}/> 等妳來修煉 ({pending.length})</h3>
+              <div className="flex flex-wrap gap-2 px-1">
+                {pending.length === 0 && allMembers.length > 0 ? (
+                  <div className="w-full p-6 bg-gradient-to-br from-rose-50 to-pink-50 rounded-[32px] border border-dashed border-rose-200 text-center shadow-inner animate-in zoom-in">
+                    <PartyPopper className="mx-auto mb-2 text-rose-400" size={24} />
+                    <p className="text-sm text-rose-500 font-black italic">姊妹們今日修煉大圓滿！💖</p>
+                  </div>
+                ) : pending.map((m, i) => <button key={i} onClick={() => onLogin(m.name)} className="bg-white text-gray-400 px-4 py-2 rounded-2xl font-bold text-xs border border-pink-50 shadow-sm hover:border-pink-200 transition-colors">{m.name}</button>)}
+              </div>
+            </div>
+          </div>
+          <div className="bg-white p-5 rounded-[32px] shadow-sm border border-pink-50 flex items-center justify-between mt-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            <div className="flex items-center gap-4">
+              <div className="bg-rose-100 p-3 rounded-2xl text-rose-500 shadow-sm"><Flag size={20} /></div>
+              <div>
+                <div className="text-[10px] text-gray-400 font-black uppercase tracking-widest">距離 5/17 夢想目標</div>
+                <div className="text-xl font-black text-gray-800 tracking-tighter">還有 <span className="text-rose-500 text-2xl">{diffDays}</span> 天</div>
+              </div>
+            </div>
+            <div className="bg-pink-50 px-3 py-1.5 rounded-full text-[10px] font-black text-pink-400 border border-pink-100 animate-pulse">加油仙女們！✨</div>
+          </div>
+        </div>
+      );
     }
 
-    function AdminV({reports,members,menus,onAdd,onDel,onUpd,onDelR,onMan,onSave,onDelMnu}){
-      const [tab,setTab]=useState('records');const [nName,setNN]=useState('');const [editM,setEdit]=useState(null);
-      const [mDate,setMD]=useState(new Date().toISOString().split('T')[0]);const [mCon,setMC]=useState('');const [mVid,setMV]=useState('');
-      useEffect(()=>{const e=menus.find(x=>x.id===mDate);if(e){setMC(e.content);setMV(e.videoUrl||'');}else{setMC('');setMV('');}},[mDate,menus]);
-      const [exp,setExp]=useState({[new Date().toISOString().split('T')[0]]:true});
-      const [manN,setMN]=useState('');const [manD,setMD2]=useState(new Date().toISOString().split('T')[0]);
-      const [delId,setDelId]=useState(null);const [delMId,setDelMId]=useState(null);
+    // --- 個人儀表板 ---
+    function UserDashboard({ userName, history, hasReportedToday, onSubmit, diffDays, todayMenu }) {
+      const reportDates = useMemo(() => history.map(r => r.date), [history]);
+      const totalDays = new Set(reportDates).size;
+      const streak = useMemo(() => calculateStreak(reportDates), [reportDates]);
+      const achievement = getAchievementByDays(totalDays);
+      return (
+        <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-500">
+          {todayMenu && (
+            <div className="bg-gradient-to-br from-pink-400 to-rose-500 rounded-[32px] p-6 shadow-xl text-white space-y-4 animate-in zoom-in duration-700 relative overflow-hidden">
+              <div className="absolute top-[-10px] right-[-10px] opacity-20 rotate-12"><BookOpen size={80} /></div>
+              <div className="flex items-center gap-3 relative z-10"><div className="bg-white/20 p-2 rounded-xl"><Sparkles size={20} className="text-white" /></div><h3 className="font-black tracking-widest text-lg">今日修煉菜單 🥗</h3></div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20 relative z-10"><p className="whitespace-pre-wrap font-medium leading-relaxed text-sm">{todayMenu.content}</p></div>
+              {todayMenu.videoUrl && <a href={todayMenu.videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3 bg-white text-rose-500 rounded-xl font-black text-sm shadow-md hover:bg-rose-50 transition-colors relative z-10"><PlayCircle size={18} /> 觀看教學影片</a>}
+            </div>
+          )}
+         
+          {/* 仙寵夥伴卡片 */}
+          <FairyPetCard days={totalDays} streak={streak} />
 
-      const rByD=useMemo(()=>{
-        const g={};reports.forEach(r=>{if(!g[r.date])g[r.date]=[];g[r.date].push(r);});
-        return Object.keys(g).sort((a,b)=>b.localeCompare(a)).map(d=>({date:d,rec:g[d],c:g[d].length,p:members.length>0?Math.round((g[d].length/members.length)*100):0}));
-      },[reports,members]);
+          <div className="bg-white rounded-[40px] p-8 shadow-xl border border-pink-50 text-center space-y-6 relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-pink-50 rounded-full blur-2xl opacity-60" />
+            <div className="w-20 h-20 bg-pink-100 rounded-3xl flex items-center justify-center text-pink-500 mx-auto shadow-inner relative">
+              <User size={40} />
+              {streak >= 2 && <div className="absolute -top-2 -right-2 text-orange-500"><Flame size={16} fill="currentColor" /></div>}
+            </div>
+            <div className="space-y-3">
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl font-black text-gray-800 tracking-tighter">{userName} 小仙女 🍓</h2>
+                  {streak >= 2 && (
+                    <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-orange-50 border border-orange-100 font-black text-orange-400 text-xs">
+                      <Flame size={14} fill="currentColor" /> <span>{streak} 連擊</span>
+                    </div>
+                  )}
+                </div>
+                {achievement && <div className={`mt-2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r ${achievement.color} shadow-sm animate-in zoom-in`}><span className="text-[10px] font-black text-white tracking-widest uppercase">{achievement.title}</span></div>}
+              </div>
+              <p className="text-gray-400 text-sm font-bold">目前已累積修煉：<span className="text-pink-500 text-2xl">{totalDays}</span> 天</p>
+            </div>
+            <div className="w-full py-3 bg-gradient-to-r from-rose-50 to-pink-50 rounded-[20px] border border-rose-100 flex items-center justify-center gap-2 shadow-sm animate-pulse"><Flag size={16} className="text-rose-400" /><p className="text-sm text-rose-500 font-black tracking-wide">距離 5/17 目標還有 <span className="text-xl">{diffDays}</span> 天 ✨</p></div>
+            {hasReportedToday ? (
+              <div className="bg-green-50 text-green-600 px-8 py-5 rounded-[24px] border border-green-100 font-black flex items-center justify-center gap-3 animate-in bounce-in">
+                <CheckCircle2 size={24} /> 妳今天已經修煉完成！
+              </div>
+            ) : (
+              <button onClick={onSubmit} className="w-full bg-gradient-to-br from-pink-400 to-rose-500 text-white py-6 rounded-[24px] font-black text-xl shadow-xl hover:shadow-2xl active:scale-95 transition-all">一鍵報備：我修煉完了！✨</button>
+            )}
+          </div>
 
-      return <div className="space-y-6 animate-in fade-in">
-        <div className="flex bg-white p-1.5 rounded-[24px] border border-pink-100 shadow-sm"><button onClick={()=>setTab('records')} className={`flex-1 py-3 rounded-[18px] font-black text-sm ${tab==='records'?'bg-pink-400 text-white shadow-lg':'text-gray-400'}`}>紀錄</button><button onClick={()=>setTab('members')} className={`flex-1 py-3 rounded-[18px] font-black text-sm ${tab==='members'?'bg-pink-400 text-white shadow-lg':'text-gray-400'}`}>成員</button><button onClick={()=>setTab('menus')} className={`flex-1 py-3 rounded-[18px] font-black text-sm ${tab==='menus'?'bg-pink-400 text-white shadow-lg':'text-gray-400'}`}>菜單</button></div>
-        {tab==='records'?<div className="space-y-6"><div className="bg-white p-6 rounded-[32px] border border-pink-100 space-y-4 shadow-sm"><h3 className="font-black text-pink-600 flex items-center gap-2"><CalendarCheck size={18}/>補打卡</h3><div className="space-y-3"><select value={manN} onChange={e=>setMN(e.target.value)} className="w-full bg-pink-50 p-4 rounded-2xl outline-none font-bold"><option value="">選擇姊妹...</option>{members.map(m=><option key={m.id} value={m.name}>{m.name}</option>)}</select><input type="date" value={manD} onChange={e=>setMD2(e.target.value)} className="w-full bg-pink-50 p-4 rounded-2xl outline-none font-bold"/><button onClick={()=>{onMan(manN,manD);setMN('');}} className="w-full bg-pink-400 text-white py-4 rounded-2xl font-black shadow-md">確認補打卡</button></div></div><div className="space-y-4">{rByD.map((g,i)=><div key={i} className="bg-white rounded-[32px] border border-pink-100 shadow-sm"><div onClick={()=>setExp(p=>({...p,[g.date]:!p[g.date]}))} className="bg-pink-50 p-5 flex justify-between items-center cursor-pointer"><div className="flex gap-3"><Calendar className="text-pink-400"/><span className="font-black text-pink-600">{g.date}</span></div><span className="text-[10px] font-black bg-white px-3 py-1.5 rounded-full text-pink-500">{g.c}人 ({g.p}%)</span></div>{exp[g.date]&&<div className="p-3 space-y-1">{g.rec.map((r,ri)=><div key={r.id||ri} className="flex justify-between p-4 hover:bg-pink-50/20 rounded-2xl"><span className="font-black text-gray-700">{r.userName}</span>{delId===r.id?<div className="flex gap-1"><button onClick={()=>{onDelR(r.id);setDelId(null);}} className="bg-rose-500 text-white px-3 py-2 rounded-xl text-[10px] font-black">確定刪除</button><button onClick={()=>setDelId(null)} className="bg-gray-200 px-3 py-2 rounded-xl text-[10px] font-black">取消</button></div>:<div className="flex gap-2"><CheckCircle2 className="text-green-500" size={16}/><button onClick={()=>setDelId(r.id)} className="text-gray-300 hover:text-rose-400"><Trash2 size={16}/></button></div>}</div>)}</div>}</div>)}</div></div>:tab==='members'?<div className="space-y-6"><div className="bg-white p-4 rounded-3xl border border-pink-100 shadow-sm flex gap-3"><input type="text" value={nName} onChange={e=>setNN(e.target.value)} placeholder="新成員名字..." className="flex-1 bg-pink-50/50 px-5 py-3 rounded-2xl outline-none font-bold"/><button onClick={()=>{onAdd(nName);setNN('');}} className="bg-pink-400 text-white p-3.5 rounded-2xl"><Plus size={24}/></button></div><div className="bg-white rounded-[32px] border border-pink-100 divide-y divide-pink-50">{members.length===0?<div className="p-10 text-center text-gray-300 font-bold italic">無成員</div>:members.map(m=><div key={m.id} className="p-5 flex justify-between items-center">{editM?.id===m.id?<div className="flex-1 flex gap-2"><input value={editM.name} onChange={e=>setEdit({...editM,name:e.target.value})} className="flex-1 border-2 border-pink-200 px-4 py-2 rounded-xl font-black outline-none"/><button onClick={()=>{onUpd(m.id,editM.name);setEdit(null);}} className="bg-green-500 text-white p-2.5 rounded-xl"><Save size={18}/></button><button onClick={()=>setEdit(null)} className="bg-gray-200 p-2.5 rounded-xl"><X size={18}/></button></div>:<><div className="flex gap-3 items-center"><div className="w-2 h-2 rounded-full bg-pink-300"/><span className="font-black text-gray-700 text-lg">{m.name}</span></div>{delMId===m.id?<div className="flex gap-1"><button onClick={()=>{onDel(m.id);setDelMId(null);}} className="bg-rose-500 text-white px-3 py-2 rounded-xl text-[10px] font-black">確定刪除</button><button onClick={()=>setDelMId(null)} className="bg-gray-200 px-3 py-2 rounded-xl text-[10px] font-black">取消</button></div>:<div className="flex gap-2"><button onClick={()=>setEdit({id:m.id,name:m.name})} className="p-2.5 text-blue-400 bg-blue-50 rounded-xl"><Edit2 size={16}/></button><button onClick={()=>setDelMId(m.id)} className="p-2.5 text-rose-400 bg-rose-50 rounded-xl"><Trash2 size={16}/></button></div>}</>}</div>)}</div></div>:<div className="space-y-6"><div className="bg-white p-6 rounded-[32px] border border-pink-100 shadow-sm space-y-4"><h3 className="font-black text-pink-600 flex gap-2"><BookOpen size={18}/>編輯菜單</h3><div className="space-y-4"><input type="date" value={mDate} onChange={e=>setMD(e.target.value)} className="w-full bg-pink-50 p-4 rounded-2xl outline-none font-bold"/><textarea value={mCon} onChange={e=>setMC(e.target.value)} placeholder="菜單內容..." className="w-full bg-pink-50 p-4 rounded-2xl outline-none font-bold h-40 resize-none"/><input type="url" value={mVid} onChange={e=>setMV(e.target.value)} placeholder="影片網址(選填)" className="w-full bg-pink-50 p-4 rounded-2xl outline-none font-bold"/><div className="flex gap-2"><button onClick={()=>onSave(mDate,mCon,mVid)} className="flex-1 bg-pink-400 text-white py-4 rounded-2xl font-black">儲存</button>{menus.find(x=>x.id===mDate)&&<button onClick={()=>onDelMnu(mDate)} className="px-4 bg-rose-100 text-rose-500 rounded-2xl"><Trash2 size={20}/></button>}</div></div></div><div className="px-4"><h4 className="text-xs font-black text-gray-400 mb-3">最近菜單</h4><div className="space-y-2">{menus.sort((a,b)=>b.id.localeCompare(a.id)).slice(0,5).map(m=><div key={m.id} onClick={()=>setMD(m.id)} className="bg-white p-4 rounded-2xl border border-pink-50 flex justify-between cursor-pointer"><span className="font-bold text-sm">{m.id}</span>{m.videoUrl&&<PlayCircle size={14} className="text-rose-400"/>}</div>)}</div></div></div>}
-        </div>;
-      }
+          <div className="space-y-4">
+            <h3 className="font-black text-gray-800 text-lg flex items-center gap-2 px-2"><History size={24} className="text-pink-400" /> 我的修煉紀錄 ({history.length})</h3>
+            <div className="space-y-3">
+              {history.length === 0 ? <div className="p-12 text-center text-gray-300 font-bold bg-white rounded-[32px] border border-dashed border-pink-100 italic">還沒有紀錄喔，開始第一步吧！</div> :
+                history.map((record, idx) => (
+                  <div key={idx} className="bg-white p-5 rounded-[24px] border border-pink-50 shadow-sm flex justify-between items-center transition-transform hover:translate-x-1">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-pink-50 p-2.5 rounded-2xl text-pink-400"><Calendar size={20} /></div>
+                      <div>
+                        <div className="font-black text-gray-800 text-lg">{record.date}</div>
+                        <div className="text-[10px] text-green-500 font-black uppercase tracking-widest">Completed ✨</div>
+                      </div>
+                    </div>
+                    <Heart size={20} className="text-pink-200" fill={idx === 0 ? "#f9a8d4" : "none"} />
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+      );
+    }
 
-      const root=createRoot(document.getElementById('root'));root.render(<App/>);
-    </script>
-  </body>
+    // --- 管理員儀表板 ---
+    function AdminDashboard({ reports, members, menus, onAddMember, onDeleteMember, onUpdateMember, onDeleteReport, onManualReport, onSaveMenu, onDeleteMenu }) {
+      const [activeTab, setActiveTab] = useState('records');
+      const [newMemberName, setNewMemberName] = useState('');
+      const [editingMember, setEditingMember] = useState(null);
+      const [menuDate, setMenuDate] = useState(new Date().toISOString().split('T')[0]);
+      const [menuContent, setMenuContent] = useState('');
+      const [menuVideo, setMenuVideo] = useState('');
+      useEffect(() => {
+        const existing = menus.find(m => m.id === menuDate);
+        if (existing) { setMenuContent(existing.content); setMenuVideo(existing.videoUrl || ''); } else { setMenuContent(''); setMenuVideo(''); }
+      }, [menuDate, menus]);
+      const [expandedDates, setExpandedDates] = useState(() => { const today = new Date().toISOString().split('T')[0]; return { [today]: true }; });
+      const [manualName, setManualName] = useState('');
+      const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
+      const [reportToDelete, setReportToDelete] = useState(null);
+      const [memberToDelete, setMemberToDelete] = useState(null);
+      const reportsByDate = useMemo(() => {
+        const groups = {};
+        reports.forEach(r => { if (!groups[r.date]) groups[r.date] = []; groups[r.date].push(r); });
+        return Object.keys(groups).sort((a, b) => b.localeCompare(a)).map(date => ({ date, records: groups[date], count: groups[date].length, percent: members.length > 0 ? Math.round((groups[date].length / members.length) * 100) : 0 }));
+      }, [reports, members]);
+
+      return (
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="flex bg-white p-1.5 rounded-[24px] border border-pink-100 shadow-sm overflow-x-auto no-scrollbar">
+            <button onClick={() => setActiveTab('records')} className={`flex-shrink-0 px-4 py-3 rounded-[18px] font-black text-sm transition-all ${activeTab === 'records' ? 'bg-pink-400 text-white shadow-lg' : 'text-gray-400'}`}>紀錄維護</button>
+            <button onClick={() => setActiveTab('members')} className={`flex-shrink-0 px-4 py-3 rounded-[18px] font-black text-sm transition-all ${activeTab === 'members' ? 'bg-pink-400 text-white shadow-lg' : 'text-gray-400'}`}>名單管理</button>
+            <button onClick={() => setActiveTab('menus')} className={`flex-shrink-0 px-4 py-3 rounded-[18px] font-black text-sm transition-all ${activeTab === 'menus' ? 'bg-pink-400 text-white shadow-lg' : 'text-gray-400'}`}>菜單安排</button>
+          </div>
+          {activeTab === 'records' ? (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-[32px] border border-pink-100 space-y-4 shadow-sm">
+                <h3 className="text-sm font-black text-pink-600 flex items-center gap-2 px-1"><CalendarCheck size={18} /> 小仙女修煉補登工具</h3>
+                <div className="space-y-3">
+                  <select value={manualName} onChange={(e) => setManualName(e.target.value)} className="w-full bg-pink-50 p-4 rounded-2xl outline-none text-sm font-bold border-none appearance-none"><option value="">選擇要補登的小仙女...</option>{members.map(m => (<option key={m.id} value={m.name}>{m.name}</option>))}</select>
+                  <input type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} className="w-full bg-pink-50 p-4 rounded-2xl outline-none text-sm font-bold border-none" />
+                  <button onClick={() => { if (manualName) { onManualReport(manualName, manualDate); setManualName(''); } }} className="w-full bg-pink-400 text-white py-4 rounded-2xl font-black text-sm shadow-md active:scale-95 transition-all">確認補登紀錄</button>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {reportsByDate.map((group, idx) => (
+                  <div key={idx} className="bg-white rounded-[32px] border border-pink-100 overflow-hidden shadow-sm">
+                    <div onClick={() => setExpandedDates(p => ({...p, [group.date]: !p[group.date]}))} className="bg-pink-50 p-5 flex justify-between items-center cursor-pointer hover:bg-pink-100/50 transition-colors"><div className="flex items-center gap-3"><Calendar size={18} className="text-pink-400" /><span className="font-black text-pink-600 text-lg">{group.date}</span>{expandedDates[group.date] ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</div><span className="text-[10px] font-black bg-white px-3 py-1.5 rounded-full text-pink-500 shadow-sm">{group.percent}% 修煉達成</span></div>
+                    {expandedDates[group.date] && (<div className="p-3 space-y-1 bg-white animate-in slide-in-from-top-2">{group.records.map((record, rIdx) => (<div key={rIdx} className="flex items-center justify-between p-4 hover:bg-pink-50/20 rounded-2xl group transition-all"><span className="font-black text-gray-700">{record.userName}</span>{reportToDelete === record.id ? (<div className="flex gap-1 animate-in slide-in-from-right-2"><button onClick={() => { onDeleteReport(record.id); setReportToDelete(null); }} className="text-[10px] bg-rose-500 text-white px-3 py-2 rounded-xl font-black">確定刪除</button><button onClick={() => setReportToDelete(null)} className="text-[10px] bg-gray-200 text-gray-600 px-3 py-2 rounded-xl font-black">取消</button></div>) : (<div className="flex items-center gap-2"><CheckCircle2 size={16} className="text-green-500" /><button onClick={() => setReportToDelete(record.id)} className="p-2 text-gray-300 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={16} /></button></div>)}</div>))}</div>)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : activeTab === 'members' ? (
+            <div className="space-y-6">
+              <div className="bg-white p-4 rounded-3xl border border-pink-100 shadow-sm flex gap-3"><input type="text" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} placeholder="新成員名字..." className="flex-1 bg-pink-50/50 px-5 py-3 rounded-2xl outline-none text-sm font-bold" /><button onClick={() => { onAddMember(newMemberName); setNewMemberName(''); }} className="bg-pink-400 text-white p-3.5 rounded-2xl shadow-md active:scale-95 transition-all"><Plus size={24} /></button></div>
+              <div className="bg-white rounded-[32px] border border-pink-100 divide-y divide-pink-50 overflow-hidden shadow-sm">{members.map((member) => (
+                <div key={member.id} className="p-5 flex justify-between items-center group transition-colors hover:bg-pink-50/10">{editingMember?.id === member.id ? (
+                  <div className="flex-1 flex gap-2 animate-in slide-in-from-left-2"><input type="text" value={editingMember.name} onChange={(e) => setEditingMember({...editingMember, name: e.target.value})} className="flex-1 bg-white border-2 border-pink-200 px-4 py-2 rounded-xl text-sm font-black outline-none" /><button onClick={() => { onUpdateMember(member.id, editingMember.name); setEditingMember(null); }} className="bg-green-50 text-green-600 p-2.5 rounded-xl shadow-sm"><Save size={18} /></button><button onClick={() => setEditingMember(null)} className="bg-gray-200 text-gray-500 p-2.5 rounded-xl shadow-sm"><X size={18} /></button></div>
+                ) : (
+                  <><div className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-pink-300" /><span className="font-black text-gray-700 text-lg">{member.name}</span></div>{memberToDelete === member.id ? (
+                    <div className="flex gap-1 animate-in slide-in-from-right-2"><button onClick={() => { onDeleteMember(member.id); setMemberToDelete(null); }} className="text-[10px] bg-rose-500 text-white px-3 py-2 rounded-xl font-black">確定移出</button><button onClick={() => setMemberToDelete(null)} className="text-[10px] bg-gray-200 text-gray-600 px-3 py-2 rounded-xl font-black">取消</button></div>
+                  ) : (
+                    <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all"><button onClick={() => setEditingMember({ id: member.id, name: member.name })} className="p-2.5 text-blue-400 bg-blue-50 rounded-xl hover:bg-blue-100"><Edit2 size={16} /></button><button onClick={() => setMemberToDelete(member.id)} className="p-2.5 text-rose-400 bg-rose-50 rounded-xl hover:bg-rose-100"><Trash2 size={16} /></button></div>
+                  )}</>
+                )}</div>
+              ))}</div>
+            </div>
+          ) : (
+            <div className="space-y-6 animate-in slide-in-from-right-4"><div className="bg-white p-6 rounded-[32px] border border-pink-100 space-y-4 shadow-sm"><h3 className="text-sm font-black text-pink-600 flex items-center gap-2 px-1"><BookOpen size={18} /> 每日修煉計畫安排</h3><div className="space-y-4"><input type="date" value={menuDate} onChange={(e) => setMenuDate(e.target.value)} className="w-full bg-pink-50/50 p-4 rounded-2xl outline-none text-sm font-bold border-none" /><textarea value={menuContent} onChange={(e) => setMenuContent(e.target.value)} placeholder="今日修煉內容..." className="w-full bg-pink-50/50 p-4 rounded-2xl outline-none text-sm font-bold border-none h-40 resize-none" /><input type="url" value={menuVideo} onChange={(e) => setMenuVideo(e.target.value)} placeholder="影片網址 (選填)..." className="w-full bg-pink-50/50 p-4 rounded-2xl outline-none text-sm font-bold border-none" /><div className="flex gap-2"><button onClick={() => onSaveMenu(menuDate, menuContent, menuVideo)} className="flex-1 bg-pink-400 text-white py-4 rounded-2xl font-black text-sm shadow-md active:scale-95 transition-all">發布菜單</button>{menus.find(m => m.id === menuDate) && (<button onClick={() => onDeleteMenu(menuDate)} className="px-4 bg-rose-100 text-rose-500 rounded-2xl font-black hover:bg-rose-200 transition-all"><Trash2 size={20} /></button>)}</div></div></div></div>
+          )}
+        </div>
+      );
+    }
+
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
 </html>
